@@ -4,6 +4,7 @@
 - [x] Review and update `src/components/header/styles/header.module.css` for full responsiveness across mobile, tablet, and desktop.
 - [x] Ensure logo, navigation, search, and actions scale properly on small screens.
 - [x] Test mobile menu dropdown and search functionality.
+- [x] Update header to show mobile menu from 1024px width instead of 768px, consolidating all menus into one dropdown.
 
 ## Footer
 - [x] Review `src/components/footer/footer.tsx` (uses Tailwind, seems responsive, but confirm).
