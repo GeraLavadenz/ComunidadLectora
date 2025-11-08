@@ -1,8 +1,4 @@
-'use client';
-
-import React, { useEffect } from 'react'
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
+import React from 'react'
 import Header from '@/components/header/header'
 import Footer from '@/components/footer/footer'
 import Biblioteca from '../../modules/biblioteca/biblioteca'
@@ -12,15 +8,6 @@ interface PageProps {
 }
 
 export default function Page({ searchParams }: PageProps) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/");
-    }
-  }, [user, loading, router]);
-
   let genre: string | null = null
 
   if (searchParams && searchParams.genre) {
@@ -29,14 +16,6 @@ export default function Page({ searchParams }: PageProps) {
     } else {
       genre = searchParams.genre
     }
-  }
-
-  if (loading) {
-    return <div>Loading...</div>; // Or a proper loading component
-  }
-
-  if (!user) {
-    return null; // Redirect will happen, no need to render
   }
 
   return (
