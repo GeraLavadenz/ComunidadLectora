@@ -19,5 +19,9 @@ export default function Home() {
     return <div>Loading...</div>; // Or a proper loading component
   }
 
+  if (user) {
+    return null; // User is logged in, redirect will happen, no need to render landing
+  }
+
   return <Landing />;
 }

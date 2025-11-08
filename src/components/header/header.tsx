@@ -39,6 +39,7 @@ const Header: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
+    window.location.href = "/"; // Redirect to home after logout
   };
 
   return (

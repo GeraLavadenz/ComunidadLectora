@@ -1,6 +1,5 @@
-# TODO: Implement Automatic Dark Mode Based on Device Preference
+# TODO: Prevent Landing Page for Logged-In Users and Handle Logout
 
-## Steps to Complete
-- [x] Update `src/lib/theme-provider.tsx` to remove localStorage logic, toggleTheme function, and add media query listener for prefers-color-scheme changes.
-- [x] Update `src/components/header/header.tsx` to remove ThemeToggle import and usage.
-- [x] Test the application to ensure theme changes automatically with device settings.
+- [x] Modify `src/app/page.tsx` to conditionally render the Landing component only when the user is not logged in and not loading.
+- [x] Add auth check in `src/app/biblioteca/page.tsx` to redirect to "/" if not logged in.
+- [x] Modify logout in `src/components/header/header.tsx` to redirect to "/" after logout.
