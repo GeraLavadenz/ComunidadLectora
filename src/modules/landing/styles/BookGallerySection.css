@@ -11,21 +11,40 @@
 }
 
 .book-gallery-section {
-  padding: 1rem 1rem;
+  padding: 2rem 1rem;
   background-color: var(--gallery-bg);
+}
+
+@media (max-width: 640px) {
+  .book-gallery-section {
+    padding: 1.5rem 0.75rem;
+  }
 }
 
 .book-gallery-container {
   max-width: 80rem;
   margin: 0 auto;
   text-align: center;
+  padding: 0 1rem;
+}
+
+@media (max-width: 640px) {
+  .book-gallery-container {
+    padding: 0 0.75rem;
+  }
 }
 
 .book-gallery-title {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: bold;
   color: var(--gallery-title);
   margin-bottom: 2rem;
+}
+
+@media (min-width: 480px) {
+  .book-gallery-title {
+    font-size: 2.5rem;
+  }
 }
 
 @media (min-width: 768px) {
