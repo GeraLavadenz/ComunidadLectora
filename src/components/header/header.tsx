@@ -59,6 +59,14 @@ const Header: React.FC = () => {
           </Link>
         </div>
 
+        {/* Search - Only Mobile */}
+        <div className={styles.mobileSearchContainer}>
+          <div className={styles.mobileSearchWrapper}>
+            <Search className={styles.searchIcon} />
+            <Input type="search" placeholder="Buscar..." className={styles.searchInput} />
+          </div>
+        </div>
+
         {/* Desktop Navigation */}
         <nav className={styles.desktopNav}>
           <NavigationMenu>
@@ -68,18 +76,6 @@ const Header: React.FC = () => {
             </NavigationMenuList>
           </NavigationMenu>
         </nav>
-
-        {/* Search */}
-        <div className={styles.searchContainer}>
-          <div className={styles.searchWrapper}>
-            <Search className={styles.searchIcon} />
-            <Input
-              type="search"
-              placeholder="Buscar historias, autores bolivianos..."
-              className={styles.searchInput}
-            />
-          </div>
-        </div>
 
         {/* Right Actions - Desktop */}
         <div className={styles.actionsContainer}>
@@ -123,13 +119,6 @@ const Header: React.FC = () => {
 
         {/* Mobile Menu Button */}
         <div className={styles.mobileMenu}>
-          <div className={styles.mobileSearchContainer}>
-            <div className={styles.mobileSearchWrapper}>
-              <Search className={styles.searchIcon} />
-              <Input type="search" placeholder="Buscar..." className={styles.searchInput} />
-            </div>
-          </div>
-
           <DropdownMenuProvider>
             <DropdownMenuTrigger className={styles.menuTrigger}>
               <Menu className={styles.menuIcon} />
@@ -160,10 +149,9 @@ const Header: React.FC = () => {
                 </DropdownMenuItem>
               ))}
 
-              {/* 👇 “Crear” en móvil usa getHref para proteger si no hay sesión */}
               <DropdownMenuItem asChild>
                 <Link href={getHref('/create')} className={styles.dropdownItem}>
-                  Crear una historia nueva
+                  Crear
                 </Link>
               </DropdownMenuItem>
 
@@ -177,20 +165,21 @@ const Header: React.FC = () => {
                   </Link>
                 </DropdownMenuItem>
               ))}
-
-              {!user && (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/login" className={styles.dropdownItem}>Iniciar sesión</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/register" className={styles.dropdownItem}>Registrate</Link>
-                  </DropdownMenuItem>
-                </>
-              )}
             </DropdownMenuContent>
           </DropdownMenuProvider>
         </div>
+
+        {/* Login/Register Buttons for Mobile */}
+        {!user && (
+          <div className={styles.mobileAuthButtons}>
+            <Button variant="outline" asChild className={`${styles.button} ${styles.buttonText}`}>
+              <Link href="/login">Iniciar sesión</Link>
+            </Button>
+            <Button variant="outline" asChild className={`${styles.button} ${styles.buttonText}`}>
+              <Link href="/register">Registrate</Link>
+            </Button>
+          </div>
+        )}
       </div>
     </header>
   );

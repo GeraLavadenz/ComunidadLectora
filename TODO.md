@@ -5,6 +5,9 @@
 - [x] Ensure logo, navigation, search, and actions scale properly on small screens.
 - [x] Test mobile menu dropdown and search functionality.
 - [x] Update header to show mobile menu from 1024px width instead of 768px, consolidating all menus into one dropdown.
+- [x] Remove duplicate search bars - keep only one search in mobile menu.
+- [x] Move login/register buttons outside the mobile menu dropdown to separate buttons.
+- [x] Keep the original menu structure with three main options (Explora, Comunidad, Crear) that expand when pressed.
 
 ## Footer
 - [x] Review `src/components/footer/footer.tsx` (uses Tailwind, seems responsive, but confirm).

@@ -242,7 +242,7 @@
   display: none;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 1024px) {
   .searchContainer {
     display: flex;
   }
@@ -301,10 +301,23 @@
 .mobileMenu {
   display: flex;
   align-items: center;
+  gap: 1rem;
 }
 
 @media (min-width: 1024px) {
   .mobileMenu {
+    display: none;
+  }
+}
+
+.mobileAuthButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (min-width: 1024px) {
+  .mobileAuthButtons {
     display: none;
   }
 }
