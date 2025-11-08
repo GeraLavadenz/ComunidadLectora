@@ -299,6 +299,7 @@
 }
 
 .mobileMenu {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -350,7 +351,7 @@
 
 .dropdownContent {
   position: absolute;
-  right: 0;
+  left: 0;
   top: 100%;
   margin-top: 0.25rem;
   width: min(256px, 90vw);
@@ -364,14 +365,16 @@
 @media (max-width: 640px) {
   .dropdownContent {
     width: 95vw;
-    right: 50%;
-    transform: translateX(50%);
+    left: 50%;
+    transform: translateX(-50%);
   }
 }
 
 .dropdownItem {
   color: var(--header-text);
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
   text-align: left;
   padding: 0.5rem 1rem;

@@ -15,7 +15,7 @@ import {
   DropdownMenuProvider,
   useDropdownMenu,
 } from '../ui/dropdown-menu';
-import { Menu, Search, LogOut, User } from 'lucide-react';
+import { Menu, Search, LogOut, User, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import GenreMenu from './components/GenreMenu';
 import CommunityMenu from './components/CommunityMenu';
@@ -53,7 +53,8 @@ const Header: React.FC = () => {
     return (
       <DropdownMenuContent floating className={styles.dropdownContent}>
         <DropdownMenuItem onClick={() => setIsExploraOpen(!isExploraOpen)} className={styles.dropdownItem}>
-          Explora
+          <span>Explora</span>
+          <ChevronDown className={`${styles.chevronIcon} ${isExploraOpen ? styles.chevronIconOpen : ''}`} />
         </DropdownMenuItem>
         {isExploraOpen && genres.map((item: MenuItem) => (
           <DropdownMenuItem key={item.title} asChild>
@@ -64,7 +65,8 @@ const Header: React.FC = () => {
         ))}
 
         <DropdownMenuItem onClick={() => setIsComunidadOpen(!isComunidadOpen)} className={styles.dropdownItem}>
-          Comunidad
+          <span>Comunidad</span>
+          <ChevronDown className={`${styles.chevronIcon} ${isComunidadOpen ? styles.chevronIconOpen : ''}`} />
         </DropdownMenuItem>
         {isComunidadOpen && community.map((item: MenuItem) => (
           <DropdownMenuItem key={item.title} asChild>
@@ -75,7 +77,8 @@ const Header: React.FC = () => {
         ))}
 
         <DropdownMenuItem onClick={() => setIsEscribirOpen(!isEscribirOpen)} className={styles.dropdownItem}>
-          Escribir
+          <span>Escribir</span>
+          <ChevronDown className={`${styles.chevronIcon} ${isEscribirOpen ? styles.chevronIconOpen : ''}`} />
         </DropdownMenuItem>
         {isEscribirOpen && createOptions.map((item: MenuItem) => (
           <DropdownMenuItem key={item.title} asChild>
