@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import logo from '../../../public/minilogo.png';
 import Link from 'next/link';
@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuProvider,
+  useDropdownMenu,
 } from '../ui/dropdown-menu';
 import { Menu, Search, LogOut, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -40,6 +41,51 @@ const Header: React.FC = () => {
   const handleLogout = async () => {
     await logout();
     window.location.href = "/"; // Redirect to home after logout
+  };
+
+  const [isExploraOpen, setIsExploraOpen] = useState(false);
+  const [isComunidadOpen, setIsComunidadOpen] = useState(false);
+  const [isEscribirOpen, setIsEscribirOpen] = useState(false);
+
+  const MobileMenuContent = () => {
+    const { setIsOpen } = useDropdownMenu();
+
+    return (
+      <DropdownMenuContent floating className={styles.dropdownContent}>
+        <DropdownMenuItem onClick={() => setIsExploraOpen(!isExploraOpen)} className={styles.dropdownItem}>
+          Explora
+        </DropdownMenuItem>
+        {isExploraOpen && genres.map((item: MenuItem) => (
+          <DropdownMenuItem key={item.title} asChild>
+            <Link href={item.href} className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`} onClick={() => setIsOpen(false)}>
+              {item.title}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+
+        <DropdownMenuItem onClick={() => setIsComunidadOpen(!isComunidadOpen)} className={styles.dropdownItem}>
+          Comunidad
+        </DropdownMenuItem>
+        {isComunidadOpen && community.map((item: MenuItem) => (
+          <DropdownMenuItem key={item.title} asChild>
+            <Link href={item.href} className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`} onClick={() => setIsOpen(false)}>
+              {item.title}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+
+        <DropdownMenuItem onClick={() => setIsEscribirOpen(!isEscribirOpen)} className={styles.dropdownItem}>
+          Escribir
+        </DropdownMenuItem>
+        {isEscribirOpen && createOptions.map((item: MenuItem) => (
+          <DropdownMenuItem key={item.title} asChild>
+            <Link href={getHref(item.href)} className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`} onClick={() => setIsOpen(false)}>
+              {item.title}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    );
   };
 
   return (
@@ -124,48 +170,7 @@ const Header: React.FC = () => {
               <Menu className={styles.menuIcon} />
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent floating className={styles.dropdownContent}>
-              <DropdownMenuItem asChild>
-                <Link href="/explore" className={styles.dropdownItem}>Explora</Link>
-              </DropdownMenuItem>
-
-              {genres.map((item: MenuItem) => (
-                <DropdownMenuItem key={item.title} asChild>
-                  <Link href={item.href} className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`}>
-                    {item.title}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-
-              <DropdownMenuItem asChild>
-                <Link href="/community" className={styles.dropdownItem}>Comunidad</Link>
-              </DropdownMenuItem>
-
-              {community.map((item: MenuItem) => (
-                <DropdownMenuItem key={item.title} asChild>
-                  <Link href={item.href} className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`}>
-                    {item.title}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-
-              <DropdownMenuItem asChild>
-                <Link href={getHref('/create')} className={styles.dropdownItem}>
-                  Crear
-                </Link>
-              </DropdownMenuItem>
-
-              {createOptions.map((item: MenuItem) => (
-                <DropdownMenuItem key={item.title} asChild>
-                  <Link
-                    href={getHref(item.href)}
-                    className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`}
-                  >
-                    {item.title}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
+            <MobileMenuContent />
           </DropdownMenuProvider>
         </div>
 

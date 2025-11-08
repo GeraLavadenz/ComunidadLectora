@@ -349,17 +349,23 @@
 }
 
 .dropdownContent {
-  width: min(16rem, 90vw);
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  width: min(256px, 90vw);
   background: var(--header-bg-dropdown);
   border: 1px solid var(--header-border);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  margin-right: 1rem;
+  border-radius: 0.375rem;
+  overflow: hidden;
 }
 
 @media (max-width: 640px) {
   .dropdownContent {
     width: 95vw;
-    margin-right: 0;
+    right: 50%;
+    transform: translateX(50%);
   }
 }
 
