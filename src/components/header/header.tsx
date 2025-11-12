@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import logo from '../../../public/minilogo.png';
+import logoCompleto from '../../../public/logoCompleto.png';
+import minilogo from '../../../public/minilogo.png';
 import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -98,11 +99,19 @@ const Header: React.FC = () => {
         <div className={styles.logoContainer}>
           <Link href="/">
             <Image
-              src={logo}
+              src={logoCompleto}
               alt="Comunidad Lectora Bolivia"
               width={120}
-              height={25}
-              className={styles.logo}
+              height={15}
+              className={styles.logoCompleto}
+              priority
+            />
+            <Image
+              src={minilogo}
+              alt="Comunidad Lectora Bolivia"
+              width={120}
+              height={15}
+              className={styles.minilogo}
               priority
             />
           </Link>
