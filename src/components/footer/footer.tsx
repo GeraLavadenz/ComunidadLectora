@@ -3,11 +3,10 @@ import Link from 'next/link';
 
 const Footer: React.FC = () => {
   const footerLinks = [
-    { title: 'Acerca de', href: '/about' },
+    { title: 'Acerca de', href: '/acerca-de' },
     { title: 'Privacidad', href: '/privacy' },
     { title: 'Términos', href: '/terms' },
     { title: 'Ayuda', href: '/help' },
-    { title: 'Carreras', href: '/careers' },
     { title: 'Publicidad', href: '/advertising' },
     { title: 'Desarrolladores', href: '/developers' },
   ];
