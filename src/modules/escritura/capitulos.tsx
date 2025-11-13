@@ -4,6 +4,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
+import Link from "next/link";
 import styles from "./styles/capitulos.module.css";
 import { stories } from "./storiesData";
 
@@ -201,7 +202,7 @@ function StoryDetail({ story }) {
 
       <section className={styles.chapterGrid}>
         {filtered.map((c) => (
-          <ChapterCard key={c.id} chapter={c} />
+          <ChapterCard key={c.id} chapter={c} storyId={story.id} />
         ))}
         {filtered.length === 0 && (
           <div className={styles.empty}>Sin resultados para "{query}"</div>
@@ -213,7 +214,7 @@ function StoryDetail({ story }) {
   );
 }
 
-function ChapterCard({ chapter }) {
+function ChapterCard({ chapter, storyId }) {
   return (
     <article
       className={styles.chapterCard}
@@ -240,7 +241,9 @@ function ChapterCard({ chapter }) {
         ) : (
           <em className={styles.pending}>Pendiente de publicación</em>
         )}
-        <button className={styles.btnGhost}>Editar</button>
+        <Link href={`/escritura/capitulos/${storyId}/${chapter.id}/editar`}>
+          <button className={styles.btnGhost}>Editar</button>
+        </Link>
       </footer>
     </article>
   );

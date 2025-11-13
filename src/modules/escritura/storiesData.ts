@@ -19,6 +19,7 @@ export const stories = [
           "Presentación del campus y del símbolo del castillo. Aparece el primer mapa con símbolos.",
         isPublished: true,
         publishedAt: "2025-10-22",
+        content: "Era una mañana fría en la Academia Militar de La Paz. El sol apenas asomaba por detrás de las montañas nevadas que rodeaban el campus, y una niebla densa se aferraba al suelo como un manto protector. Los cadetes de primer año se alineaban en formación, sus uniformes impecables contrastando con el paisaje agreste.\n\nEl coronel Ramírez, un hombre de rostro curtido por años de servicio, caminaba frente a ellos con paso firme. 'Bienvenidos a la EMI', dijo con voz grave. 'Aquí no solo aprenderán a defender su patria, sino también a comprender su historia.'\n\nMientras hablaba, señaló hacia el horizonte donde se erguía el Castillo de Aranjuez, una estructura antigua que parecía flotar sobre la niebla. 'Ese castillo', continuó, 'guarda secretos que han protegido a Bolivia durante siglos. Hoy, ustedes comenzarán a desentrañarlos.'\n\nLos cadetes intercambiaron miradas curiosas. Nadie imaginaba que esa mañana rutinaria marcaría el inicio de una aventura que cambiaría sus vidas para siempre.",
       },
       {
         id: "c-002",
