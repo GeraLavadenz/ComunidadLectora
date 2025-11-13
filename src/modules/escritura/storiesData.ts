@@ -68,4 +68,16 @@ export const stories = [
       },
     ],
   },
+  {
+    id: "h-003",
+    title: "Sombras del Valle",
+    description:
+      "Una joven arqueóloga descubre ruinas antiguas en el valle de Cochabamba que despiertan fuerzas olvidadas.",
+    author: "M. Rodríguez",
+    genres: ["Aventura", "Histórico"],
+    tags: ["arqueología", "valle", "misterio", "antiguas ruinas"],
+    createdAt: "2025-11-15",
+    updatedAt: "2025-11-15",
+    chapters: [],
+  },
 ];
