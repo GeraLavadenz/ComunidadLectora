@@ -5,6 +5,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import styles from "./styles/capitulos.module.css";
 import { stories } from "./storiesData";
 
@@ -63,6 +64,14 @@ function StoryDetail({ story }) {
   const [onlyPublished, setOnlyPublished] = useState(false);
   const [sortBy, setSortBy] = useState("num-asc"); // "num-asc" | "num-desc" | "title"
 
+  const [showForm, setShowForm] = useState(false);
+  const [newChapter, setNewChapter] = useState({
+    title: '',
+    summary: '',
+    content: '',
+    isPublished: false
+  });
+
   const stats = useMemo(() => {
     const total = local?.chapters?.length || 0;
     const published = (local?.chapters || []).filter((c) => c.isPublished).length;
@@ -87,6 +96,27 @@ function StoryDetail({ story }) {
   function handleRemoveGenre(val) {
     setLocal((s) => ({ ...s, genres: removeChip(s.genres, val), updatedAt: new Date().toISOString() }));
   }
+
+  const handleCreateChapter = () => {
+    const number = (local.chapters || []).length + 1;
+    const id = `c-${String(number).padStart(3, '0')}`;
+    const newCh = {
+      id,
+      number,
+      title: newChapter.title,
+      summary: newChapter.summary,
+      content: newChapter.content,
+      isPublished: newChapter.isPublished,
+      publishedAt: newChapter.isPublished ? new Date().toISOString() : undefined
+    };
+    setLocal((s) => ({
+      ...s,
+      chapters: [...(s.chapters || []), newCh],
+      updatedAt: new Date().toISOString()
+    }));
+    setNewChapter({ title: '', summary: '', content: '', isPublished: false });
+    setShowForm(false);
+  };
 
   return (
     <main className={styles.page}>
@@ -198,7 +228,66 @@ function StoryDetail({ story }) {
           <option value="num-desc">Número ↓</option>
           <option value="title">Título A–Z</option>
         </select>
+        <button className={`${styles.btn} ${styles.create}`} onClick={() => setShowForm(!showForm)}>
+          + Nuevo Capítulo
+        </button>
       </section>
+
+      {showForm && (
+        <motion.div
+          className={styles.formContainer}
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+        >
+          <h3>Crear Nuevo Capítulo</h3>
+          <div className={styles.formGroup}>
+            <label>Título:</label>
+            <input
+              type="text"
+              value={newChapter.title}
+              onChange={(e) => setNewChapter({ ...newChapter, title: e.target.value })}
+              placeholder="Ingresa el título del capítulo"
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Resumen:</label>
+            <textarea
+              value={newChapter.summary}
+              onChange={(e) => setNewChapter({ ...newChapter, summary: e.target.value })}
+              placeholder="Describe brevemente el capítulo"
+              rows={3}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Contenido:</label>
+            <textarea
+              value={newChapter.content}
+              onChange={(e) => setNewChapter({ ...newChapter, content: e.target.value })}
+              placeholder="Escribe el contenido del capítulo aquí..."
+              rows={10}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>
+              <input
+                type="checkbox"
+                checked={newChapter.isPublished}
+                onChange={(e) => setNewChapter({ ...newChapter, isPublished: e.target.checked })}
+              />
+              Publicar inmediatamente
+            </label>
+          </div>
+          <div className={styles.formActions}>
+            <button className={`${styles.btn} ${styles.save}`} onClick={handleCreateChapter}>
+              Crear Capítulo
+            </button>
+            <button className={`${styles.btn} ${styles.cancel}`} onClick={() => setShowForm(false)}>
+              Cancelar
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       <section className={styles.chapterGrid}>
         {filtered.map((c) => (
