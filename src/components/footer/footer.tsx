@@ -8,8 +8,8 @@ const Footer: React.FC = () => {
     { title: 'Términos y Condiciones', href: '/terminos-condiciones' },
     { title: 'Privacidad', href: '/privacidad' },
     { title: 'Ayuda', href: '/ayuda' },
-    { title: 'Publicidad', href: '/advertising' },
-    { title: 'Desarrolladores', href: '/developers' },
+    /*{ title: 'Publicidad', href: '/advertising' },*/
+    { title: 'Desarrolladores', href: '/desarrolladores' },
   ];
 
   return (
