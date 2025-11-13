@@ -4,12 +4,12 @@ import styles from './styles/footer.module.css';
 
 const Footer: React.FC = () => {
   const footerLinks = [
-    { title: 'Acerca de', href: '/acerca-de' },
-    { title: 'Términos y Condiciones', href: '/terminos-condiciones' },
-    { title: 'Privacidad', href: '/privacidad' },
-    { title: 'Ayuda', href: '/ayuda' },
+    { title: 'Acerca de', href: '/info/acerca-de' },
+    { title: 'Términos y Condiciones', href: '/info/terminos-condiciones' },
+    { title: 'Privacidad', href: '/info/privacidad' },
+    { title: 'Ayuda', href: '/info/ayuda' },
     /*{ title: 'Publicidad', href: '/advertising' },*/
-    { title: 'Desarrolladores', href: '/desarrolladores' },
+    { title: 'Desarrolladores', href: '/info/desarrolladores' },
   ];
 
   return (
