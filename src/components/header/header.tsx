@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import logo from '../../../public/minilogo.png';
+import logoCompleto from '../../../public/logoCompleto.png';
+import minilogo from '../../../public/minilogo.png';
 import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -13,8 +14,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuProvider,
+  useDropdownMenu,
 } from '../ui/dropdown-menu';
-import { Menu, Search, LogOut, User } from 'lucide-react';
+import { Menu, Search, LogOut, User, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import GenreMenu from './components/GenreMenu';
 import CommunityMenu from './components/CommunityMenu';
@@ -39,6 +41,55 @@ const Header: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
+    window.location.href = "/"; // Redirect to home after logout
+  };
+
+  const [isExploraOpen, setIsExploraOpen] = useState(false);
+  const [isComunidadOpen, setIsComunidadOpen] = useState(false);
+  const [isEscribirOpen, setIsEscribirOpen] = useState(false);
+
+  const MobileMenuContent = () => {
+    const { setIsOpen } = useDropdownMenu();
+
+    return (
+      <DropdownMenuContent floating className={styles.dropdownContent}>
+        <DropdownMenuItem onClick={() => setIsExploraOpen(!isExploraOpen)} className={styles.dropdownItem}>
+          <span>Explora</span>
+          <ChevronDown className={`${styles.chevronIcon} ${isExploraOpen ? styles.chevronIconOpen : ''}`} />
+        </DropdownMenuItem>
+        {isExploraOpen && genres.map((item: MenuItem) => (
+          <DropdownMenuItem key={item.title} asChild>
+            <Link href={item.href} className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`} onClick={() => setIsOpen(false)}>
+              {item.title}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+
+        <DropdownMenuItem onClick={() => setIsComunidadOpen(!isComunidadOpen)} className={styles.dropdownItem}>
+          <span>Comunidad</span>
+          <ChevronDown className={`${styles.chevronIcon} ${isComunidadOpen ? styles.chevronIconOpen : ''}`} />
+        </DropdownMenuItem>
+        {isComunidadOpen && community.map((item: MenuItem) => (
+          <DropdownMenuItem key={item.title} asChild>
+            <Link href={item.href} className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`} onClick={() => setIsOpen(false)}>
+              {item.title}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+
+        <DropdownMenuItem onClick={() => setIsEscribirOpen(!isEscribirOpen)} className={styles.dropdownItem}>
+          <span>Escribir</span>
+          <ChevronDown className={`${styles.chevronIcon} ${isEscribirOpen ? styles.chevronIconOpen : ''}`} />
+        </DropdownMenuItem>
+        {isEscribirOpen && createOptions.map((item: MenuItem) => (
+          <DropdownMenuItem key={item.title} asChild>
+            <Link href={getHref(item.href)} className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`} onClick={() => setIsOpen(false)}>
+              {item.title}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    );
   };
 
   return (
@@ -48,14 +99,30 @@ const Header: React.FC = () => {
         <div className={styles.logoContainer}>
           <Link href="/">
             <Image
-              src={logo}
+              src={logoCompleto}
               alt="Comunidad Lectora Bolivia"
               width={120}
-              height={25}
-              className={styles.logo}
+              height={15}
+              className={styles.logoCompleto}
+              priority
+            />
+            <Image
+              src={minilogo}
+              alt="Comunidad Lectora Bolivia"
+              width={120}
+              height={15}
+              className={styles.minilogo}
               priority
             />
           </Link>
+        </div>
+
+        {/* Search - Only Mobile */}
+        <div className={styles.mobileSearchContainer}>
+          <div className={styles.mobileSearchWrapper}>
+            <Search className={styles.searchIcon} />
+            <Input type="search" placeholder="Buscar..." className={styles.searchInput} />
+          </div>
         </div>
 
         {/* Desktop Navigation */}
@@ -67,18 +134,6 @@ const Header: React.FC = () => {
             </NavigationMenuList>
           </NavigationMenu>
         </nav>
-
-        {/* Search */}
-        <div className={styles.searchContainer}>
-          <div className={styles.searchWrapper}>
-            <Search className={styles.searchIcon} />
-            <Input
-              type="search"
-              placeholder="Buscar historias, autores bolivianos..."
-              className={styles.searchInput}
-            />
-          </div>
-        </div>
 
         {/* Right Actions - Desktop */}
         <div className={styles.actionsContainer}>
@@ -122,74 +177,26 @@ const Header: React.FC = () => {
 
         {/* Mobile Menu Button */}
         <div className={styles.mobileMenu}>
-          <div className={styles.mobileSearchContainer}>
-            <div className={styles.mobileSearchWrapper}>
-              <Search className={styles.searchIcon} />
-              <Input type="search" placeholder="Buscar..." className={styles.searchInput} />
-            </div>
-          </div>
-
           <DropdownMenuProvider>
             <DropdownMenuTrigger className={styles.menuTrigger}>
               <Menu className={styles.menuIcon} />
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent floating className={styles.dropdownContent}>
-              <DropdownMenuItem asChild>
-                <Link href="/explore" className={styles.dropdownItem}>Explora</Link>
-              </DropdownMenuItem>
-
-              {genres.map((item: MenuItem) => (
-                <DropdownMenuItem key={item.title} asChild>
-                  <Link href={item.href} className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`}>
-                    {item.title}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-
-              <DropdownMenuItem asChild>
-                <Link href="/community" className={styles.dropdownItem}>Comunidad</Link>
-              </DropdownMenuItem>
-
-              {community.map((item: MenuItem) => (
-                <DropdownMenuItem key={item.title} asChild>
-                  <Link href={item.href} className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`}>
-                    {item.title}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-
-              {/* 👇 “Crear” en móvil usa getHref para proteger si no hay sesión */}
-              <DropdownMenuItem asChild>
-                <Link href={getHref('/create')} className={styles.dropdownItem}>
-                  Crear una historia nueva
-                </Link>
-              </DropdownMenuItem>
-
-              {createOptions.map((item: MenuItem) => (
-                <DropdownMenuItem key={item.title} asChild>
-                  <Link
-                    href={getHref(item.href)}
-                    className={`${styles.dropdownItem} ${styles.dropdownItemIndented}`}
-                  >
-                    {item.title}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-
-              {!user && (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/login" className={styles.dropdownItem}>Iniciar sesión</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/register" className={styles.dropdownItem}>Registrate</Link>
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
+            <MobileMenuContent />
           </DropdownMenuProvider>
         </div>
+
+        {/* Login/Register Buttons for Mobile */}
+        {!user && (
+          <div className={styles.mobileAuthButtons}>
+            <Button variant="outline" asChild className={`${styles.button} ${styles.buttonText}`}>
+              <Link href="/login">Iniciar sesión</Link>
+            </Button>
+            <Button variant="outline" asChild className={`${styles.button} ${styles.buttonText}`}>
+              <Link href="/register">Registrate</Link>
+            </Button>
+          </div>
+        )}
       </div>
     </header>
   );

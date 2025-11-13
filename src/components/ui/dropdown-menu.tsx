@@ -184,7 +184,7 @@ export function DropdownMenuProvider({ children }: { children: React.ReactNode }
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
-function useDropdownMenu() {
+export function useDropdownMenu() {
   const { isOpen, setIsOpen } = useContext(Context);
 
   return { isOpen, setIsOpen };

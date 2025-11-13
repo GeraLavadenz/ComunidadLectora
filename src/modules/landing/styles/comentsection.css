@@ -18,16 +18,31 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4rem 6rem;
+    padding: 4rem 1rem;
     max-width: 100%;
     margin: 0 auto;
     background: var(--coment-bg);
     color: var(--coment-text);
   }
+
+  @media (max-width: 768px) {
+    .landing-section {
+      flex-direction: column;
+      padding: 2rem 0.75rem;
+      text-align: center;
+    }
+  }
   
   .image-area {
     position: relative;
     width: 45%;
+  }
+
+  @media (max-width: 768px) {
+    .image-area {
+      width: 100%;
+      margin-bottom: 2rem;
+    }
   }
   
   /* Ilustración */
@@ -84,18 +99,42 @@ body {
   .text-area {
     width: 50%;
   }
-  
+
+  @media (max-width: 768px) {
+    .text-area {
+      width: 100%;
+    }
+  }
+
   .text-area h1 {
     font-weight: 900;
-    font-size: 2.5rem;
+    font-size: 2rem;
     line-height: 1.2;
     margin-bottom: 1rem;
   }
-  
+
+  @media (min-width: 480px) {
+    .text-area h1 {
+      font-size: 2.25rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .text-area h1 {
+      font-size: 2.5rem;
+    }
+  }
+
   .text-area p {
     font-weight: 400;
-    font-size: 1.125rem;
+    font-size: 1rem;
     line-height: 1.5;
     max-width: 500px;
+  }
+
+  @media (min-width: 480px) {
+    .text-area p {
+      font-size: 1.125rem;
+    }
   }
   
