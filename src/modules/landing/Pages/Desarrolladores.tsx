@@ -8,8 +8,8 @@ import styles from '../styles/Desarrolladores.module.css';
 const Desarrolladores: React.FC = () => {
   const teamMembers = [
     {
-      name: 'Ana García',
-      role: 'Desarrolladora Frontend',
+      name: 'Roger Fernando Bautista ',
+      role: 'Desarrollador FullStack',
       bio: 'Especialista en React y Next.js con 5 años de experiencia creando interfaces de usuario intuitivas.',
       skills: ['React', 'TypeScript', 'CSS', 'UI/UX'],
       image: '👩‍💻',
@@ -17,15 +17,15 @@ const Desarrolladores: React.FC = () => {
       github: '#'
     },
     {
-      name: 'Carlos Rodríguez',
-      role: 'Desarrollador Backend',
+      name: 'Geraldine Lavadenz Tapia',
+      role: 'Desarrolladora FullStack',
       bio: 'Experto en Node.js y Firebase, apasionado por la arquitectura de sistemas escalables.',
       skills: ['Node.js', 'Firebase', 'MongoDB', 'API Design'],
       image: '👨‍💻',
       linkedin: '#',
       github: '#'
     },
-    {
+    /*{
       name: 'María López',
       role: 'Diseñadora UX/UI',
       bio: 'Creadora de experiencias digitales centradas en el usuario, con enfoque en accesibilidad.',
@@ -51,33 +51,25 @@ const Desarrolladores: React.FC = () => {
       image: '👩‍💼',
       linkedin: '#',
       github: '#'
-    },
-    {
-      name: 'Diego Sánchez',
-      role: 'QA Engineer',
-      bio: 'Garantiza la calidad del software mediante testing automatizado y manual exhaustivo.',
-      skills: ['Selenium', 'Jest', 'Postman', 'Test Planning'],
-      image: '👨‍🔬',
-      linkedin: '#',
-      github: '#'
-    }
+    },*/
+    
   ];
 
   const milestones = [
     {
-      year: '2023',
+      year: '2025',
       title: 'Fundación',
       description: 'Nace Comunidad Lectora Bolivia con la visión de conectar lectores en todo el país.',
       icon: '🌱'
     },
     {
-      year: '2024',
+      year: '2025',
       title: 'Lanzamiento Beta',
       description: 'Primera versión pública con funcionalidades básicas de biblioteca y escritura colaborativa.',
       icon: '🚀'
     },
-    {
-      year: '2024',
+    /*{
+      year: '2025',
       title: 'Crecimiento',
       description: 'Más de 10,000 usuarios registrados y miles de historias compartidas.',
       icon: '📈'
@@ -87,7 +79,7 @@ const Desarrolladores: React.FC = () => {
       title: 'Expansión',
       description: 'Nuevas funcionalidades como clubs de lectura virtuales y eventos literarios.',
       icon: '🌟'
-    }
+    }*/
   ];
 
   const values = [
