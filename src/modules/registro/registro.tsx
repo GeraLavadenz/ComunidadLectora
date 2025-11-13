@@ -12,11 +12,8 @@ export default function RegisterPage() {
   const [oauthLoading, setOauthLoading] = useState(false);
 
 
-
-
   return (
     <main className={styles.container} aria-busy={loading || oauthLoading}>
-      
       {/* Decoración animada */}
       <div className={styles.bgGlow} aria-hidden />
       <div className={styles.bgOrbs} aria-hidden>
@@ -24,7 +21,6 @@ export default function RegisterPage() {
         <span />
         <span />
       </div>
-  )
 
       <section className={styles.card} role="region" aria-label="Formulario de registro">
         <RegisterHeader />
