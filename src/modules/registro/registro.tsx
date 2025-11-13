@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
 
+
   return (
     <main className={styles.container} aria-busy={loading || oauthLoading}>
       {/* Decoración animada */}

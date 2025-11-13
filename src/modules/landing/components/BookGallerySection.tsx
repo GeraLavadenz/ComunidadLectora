@@ -11,7 +11,7 @@ import LIBRO2 from '../assets/LIBRO2.jpg';
 import LIBRO4 from '../assets/LOS ORÍGENES DEL TOTALITARISMO ☆ Hannah Arendt_ Inglaterra_Alemania,  1951.jpeg';
 import LIBRO5 from '../assets/La peste _ Albert Camus.jpeg';
 import LIBRO6 from '../assets/_Racismo y poder en Bolivia_, de Fernando Molina(2021).jpeg';
-import LIBRO7 from '../assets/_Perú, 1890-1977_ es la reedición del clásico libro de Rosemary Thorp y Geoffrey Bertram, uno de los primeros estudios de largo aliento de la economía nacional del siglo XX_.jpeg';
+/*import LIBRO7 from '../assets/_Perú, 1890-1977_ es la reedición del clásico libro de Rosemary Thorp y Geoffrey Bertram, uno de los primeros estudios de largo aliento de la economía nacional del siglo XX_.jpeg';*/
 import LIBRO8 from '../assets/descargar (1).jpeg';
 
 
@@ -26,7 +26,7 @@ const BookGallerySection: React.FC = () => {
     { src: LIBRO4.src, alt: 'Libro 4' },
     { src: LIBRO5.src, alt: 'Libro 5' },
     { src: LIBRO6.src, alt: 'Libro 6' },
-    { src: LIBRO7.src, alt: 'Libro 7' },
+    /*{ src: LIBRO7.src, alt: 'Libro 7' },*/
     { src: LIBRO8.src, alt: 'Libro 8' },
 
     { src: LIBRO1.src, alt: 'Libro 1' },
@@ -35,7 +35,7 @@ const BookGallerySection: React.FC = () => {
     { src: LIBRO4.src, alt: 'Libro 4' },
     { src: LIBRO5.src, alt: 'Libro 5' },
     { src: LIBRO6.src, alt: 'Libro 6' },
-    { src: LIBRO7.src, alt: 'Libro 7' },
+    /*{ src: LIBRO7.src, alt: 'Libro 7' },*/
     { src: LIBRO8.src, alt: 'Libro 8' },
   ];
 

@@ -1,3 +1,11 @@
+
+- [x] Agregar estado para la visibilidad del modal y el contenido corregido
+- [x] Implementar función básica de corrección de IA (demo)
+- [x] Agregar botón de IA en la sección hero con posicionamiento absoluto en esquina superior derecha
+- [x] Agregar tooltip al botón para descripción al pasar el mouse
+- [x] Agregar componente modal para mostrar el contenido corregido
+- [x] Manejar el clic del botón para mostrar el modal con el contenido corregido
+
 # TODO: Make Landing Page 100% Responsive
 
 ## Header
@@ -23,3 +31,4 @@
 - [x] Test all sections on various screen sizes (mobile: 320px, tablet: 768px, desktop: 1024px+).
 - [x] Ensure no horizontal scroll and proper padding/margins.
 - [x] Verify animations and images scale correctly.
+
