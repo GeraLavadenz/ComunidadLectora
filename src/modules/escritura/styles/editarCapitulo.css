@@ -1,0 +1,154 @@
+/* Styles for EditarCapitulo component */
+
+/* AI Button Container */
+.aiButtonContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* AI Button */
+.aiButton {
+  background: var(--brand);
+  color: var(--bg);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  gap: 8px;
+}
+
+/* Meta Section */
+.metaSection {
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+/* Card Article */
+.cardArticle {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Form Group */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Label */
+.label {
+  display: block;
+}
+
+/* Input */
+.input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Textarea */
+.textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+/* Content Textarea */
+.contentTextarea {
+  width: 100%;
+  min-height: 400px;
+  resize: vertical;
+  font-family: monospace;
+  font-size: 14px;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+/* Comparison Container */
+.comparisonContainer {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  gap: 16px;
+  flex: 1;
+}
+
+/* Comparison Column */
+.comparisonColumn {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Comparison Header */
+.comparisonHeader {
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.comparisonHeaderOriginal {
+  color: var(--text-secondary);
+}
+
+.comparisonHeaderCorrected {
+  color: var(--brand);
+}
+
+/* Corrected Textarea */
+.correctedTextarea {
+  width: 100%;
+  min-height: 400px;
+  resize: vertical;
+  font-family: monospace;
+  font-size: 14px;
+  box-sizing: border-box;
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+}
+
+/* Correction Buttons Container */
+.correctionButtons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* Published Toggle Container */
+.publishedToggle {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Bottom Section */
+.bottomSection {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px 50px;
+}
+
+/* Bottom Buttons */
+.bottomButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}

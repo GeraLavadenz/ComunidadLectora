@@ -6,7 +6,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import styles from "./styles/capitulos.module.css";
+import "./styles/capitulos.css";
 import { stories } from "./storiesData";
 
 // ------------------------------------
@@ -119,22 +119,22 @@ function StoryDetail({ story }) {
   };
 
   return (
-    <main className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroGlow} />
-        <div className={styles.heroContent}>
-          <h1 className={styles.title}>{local.title}</h1>
-          <p className={styles.subtitle}>
+    <main className="page">
+      <header className="hero">
+        <div className="heroGlow" />
+        <div className="heroContent">
+          <h1 className="title">{local.title}</h1>
+          <p className="subtitle">
             por <strong>{local.author}</strong>
           </p>
-          <div className={styles.badges} aria-label="Géneros y etiquetas">
+          <div className="badges" aria-label="Géneros y etiquetas">
             {(local.genres || []).map((g) => (
-              <span key={g} className={styles.badgeGenre}>
+              <span key={g} className="badgeGenre">
                 {g}
               </span>
             ))}
             {(local.tags || []).map((t) => (
-              <span key={t} className={styles.badgeTag}>
+              <span key={t} className="badgeTag">
                 #{t}
               </span>
             ))}
@@ -142,11 +142,11 @@ function StoryDetail({ story }) {
         </div>
       </header>
 
-      <section className={styles.meta}>
-        <article className={styles.card}>
+      <section className="meta">
+        <article className="card">
           <h2>Descripción</h2>
           <p>{local.description}</p>
-          <ul className={styles.metaList}>
+          <ul className="metaList">
             <li>
               <span>Creado:</span> {new Date(local.createdAt).toLocaleDateString()}
             </li>
@@ -159,58 +159,58 @@ function StoryDetail({ story }) {
           </ul>
 
           {/* Editable: Géneros */}
-          <div className={styles.editRow}>
-            <h3 className={styles.editTitle}>Géneros</h3>
+          <div className="editRow">
+            <h3 className="editTitle">Géneros</h3>
             <ChipEditor
               items={local.genres}
               placeholder="Añadir género y Enter"
               onAdd={handleAddGenre}
               onRemove={handleRemoveGenre}
-              badgeClass={styles.genreChip}
+              badgeClass="genreChip"
               ariaLabel="Editor de géneros"
             />
           </div>
 
           {/* Editable: Etiquetas */}
-          <div className={styles.editRow}>
-            <h3 className={styles.editTitle}>Etiquetas</h3>
+          <div className="editRow">
+            <h3 className="editTitle">Etiquetas</h3>
             <ChipEditor
               items={local.tags}
               placeholder="Añadir etiqueta y Enter"
               onAdd={handleAddTag}
               onRemove={handleRemoveTag}
-              badgeClass={styles.tagChip}
+              badgeClass="tagChip"
               ariaLabel="Editor de etiquetas"
             />
           </div>
 
-          <p className={styles.note}>Puedes modificar <strong>géneros</strong> y <strong>etiquetas</strong> incluso si hay capítulos publicados. Estos cambios no afectan el estado de publicación de los capítulos.</p>
+          <p className="note">Puedes modificar <strong>géneros</strong> y <strong>etiquetas</strong> incluso si hay capítulos publicados. Estos cambios no afectan el estado de publicación de los capítulos.</p>
         </article>
 
-        <article className={styles.card}>
+        <article className="card">
           <h2>Publicación</h2>
-          <div className={styles.progressBar} aria-label="Progreso de publicación">
-            <div className={styles.progressFill} style={{ width: `${stats.pct}%` }} />
+          <div className="progressBar" aria-label="Progreso de publicación">
+            <div className="progressFill" style={{ width: `${stats.pct}%` }} />
           </div>
-          <p className={styles.progressText}>
+          <p className="progressText">
             {stats.published} publicados de {stats.total} ({stats.pct}%)
           </p>
         </article>
       </section>
 
-      <section className={styles.toolbar}>
-        <div className={styles.searchBox}>
+      <section className="toolbar">
+        <div className="searchBox">
           <input
-            className={styles.input}
+            className="input"
             placeholder="Buscar por número, título o resumen..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <span className={styles.searchIcon} aria-hidden>
+          <span className="searchIcon" aria-hidden>
             ⌕
           </span>
         </div>
-        <label className={styles.switch}>
+        <label className="switch">
           <input
             type="checkbox"
             checked={onlyPublished}
@@ -219,7 +219,7 @@ function StoryDetail({ story }) {
           <span>Solo publicados</span>
         </label>
         <select
-          className={styles.select}
+          className="select"
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
           aria-label="Ordenar capítulos"
@@ -228,20 +228,20 @@ function StoryDetail({ story }) {
           <option value="num-desc">Número ↓</option>
           <option value="title">Título A–Z</option>
         </select>
-        <button className={`${styles.btn} ${styles.create}`} onClick={() => setShowForm(!showForm)}>
+        <button className="btn create" onClick={() => setShowForm(!showForm)}>
           + Nuevo Capítulo
         </button>
       </section>
 
       {showForm && (
         <motion.div
-          className={styles.formContainer}
+          className="formContainer"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
         >
           <h3>Crear Nuevo Capítulo</h3>
-          <div className={styles.formGroup}>
+          <div className="formGroup">
             <label>Título:</label>
             <input
               type="text"
@@ -250,7 +250,7 @@ function StoryDetail({ story }) {
               placeholder="Ingresa el título del capítulo"
             />
           </div>
-          <div className={styles.formGroup}>
+          <div className="formGroup">
             <label>Resumen:</label>
             <textarea
               value={newChapter.summary}
@@ -259,7 +259,7 @@ function StoryDetail({ story }) {
               rows={3}
             />
           </div>
-          <div className={styles.formGroup}>
+          <div className="formGroup">
             <label>Contenido:</label>
             <textarea
               value={newChapter.content}
@@ -268,7 +268,7 @@ function StoryDetail({ story }) {
               rows={10}
             />
           </div>
-          <div className={styles.formGroup}>
+          <div className="formGroup">
             <label>
               <input
                 type="checkbox"
@@ -278,23 +278,23 @@ function StoryDetail({ story }) {
               Publicar inmediatamente
             </label>
           </div>
-          <div className={styles.formActions}>
-            <button className={`${styles.btn} ${styles.save}`} onClick={handleCreateChapter}>
+          <div className="formActions">
+            <button className="btn save" onClick={handleCreateChapter}>
               Crear Capítulo
             </button>
-            <button className={`${styles.btn} ${styles.cancel}`} onClick={() => setShowForm(false)}>
+            <button className="btn cancel" onClick={() => setShowForm(false)}>
               Cancelar
             </button>
           </div>
         </motion.div>
       )}
 
-      <section className={styles.chapterGrid}>
+      <section className="chapterGrid">
         {filtered.map((c) => (
           <ChapterCard key={c.id} chapter={c} storyId={story.id} />
         ))}
         {filtered.length === 0 && (
-          <div className={styles.empty}>Sin resultados para "{query}"</div>
+          <div className="empty">Sin resultados para "{query}"</div>
         )}
       </section>
 
@@ -306,32 +306,32 @@ function StoryDetail({ story }) {
 function ChapterCard({ chapter, storyId }) {
   return (
     <article
-      className={styles.chapterCard}
+      className="chapterCard"
       data-published={chapter.isPublished}
       tabIndex={0}
       aria-label={`Capítulo ${chapter.number}: ${chapter.title}`}
     >
-      <div className={styles.chapterHeader}>
-        <span className={styles.chNumber}>#{chapter.number}</span>
-        <h3 className={styles.chTitle}>{chapter.title}</h3>
+      <div className="chapterHeader">
+        <span className="chNumber">#{chapter.number}</span>
+        <h3 className="chTitle">{chapter.title}</h3>
         <span
-          className={chapter.isPublished ? styles.badgeOk : styles.badgeDraft}
+          className={chapter.isPublished ? "badgeOk" : "badgeDraft"}
           title={chapter.isPublished ? "Publicado" : "Borrador"}
         >
           {chapter.isPublished ? "Publicado" : "Borrador"}
         </span>
       </div>
-      <p className={styles.chSummary}>{chapter.summary}</p>
-      <footer className={styles.chFooter}>
+      <p className="chSummary">{chapter.summary}</p>
+      <footer className="chFooter">
         {chapter.isPublished ? (
-          <time className={styles.date} dateTime={chapter.publishedAt}>
+          <time className="date" dateTime={chapter.publishedAt}>
             Publicado el {chapter.publishedAt && new Date(chapter.publishedAt).toLocaleDateString()}
           </time>
         ) : (
-          <em className={styles.pending}>Pendiente de publicación</em>
+          <em className="pending">Pendiente de publicación</em>
         )}
         <Link href={`/escritura/capitulos/${storyId}/${chapter.id}/editar`}>
-          <button className={styles.btnGhost}>Editar</button>
+          <button className="btnGhost">Editar</button>
         </Link>
       </footer>
     </article>
@@ -353,9 +353,9 @@ export default function Capitulos({ storyId }: { storyId?: string }) {
   return (
     <div>
       {!storyId && (
-        <div className={styles.topBar}>
-          <label className={styles.topLabel}>Historia:</label>
-          <select className={styles.topSelect} value={selectedStoryId} onChange={(e) => setSelectedStoryId(e.target.value)}>
+        <div className="topBar">
+          <label className="topLabel">Historia:</label>
+          <select className="topSelect" value={selectedStoryId} onChange={(e) => setSelectedStoryId(e.target.value)}>
             {stories.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.title}
@@ -439,16 +439,16 @@ function ChipEditor({ items = [], placeholder, onAdd, onRemove, badgeClass = "",
 
   return (
     <div aria-label={ariaLabel}>
-      <div className={styles.chips}>
+      <div className="chips">
         {items.map((it) => (
-          <span key={it} className={`${styles.chip} ${badgeClass}`}>
+          <span key={it} className={`chip ${badgeClass}`}>
             {it}
-            <button className={styles.chipRemove} title={`Eliminar ${it}`} onClick={() => onRemove(it)} aria-label={`Eliminar ${it}`}>×</button>
+            <button className="chipRemove" title={`Eliminar ${it}`} onClick={() => onRemove(it)} aria-label={`Eliminar ${it}`}>×</button>
           </span>
         ))}
       </div>
       <input
-        className={styles.chipInput}
+        className="chipInput"
         placeholder={placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}

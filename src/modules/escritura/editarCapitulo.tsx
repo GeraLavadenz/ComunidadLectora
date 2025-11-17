@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import styles from "./styles/capitulos.module.css";
+import "./styles/capitulos.css";
+import "./styles/editarCapitulo.css";
 import { stories } from "./storiesData";
 
 // Función básica de corrección de IA (demo)
@@ -48,7 +49,7 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
   }, [chapter]);
 
   if (!story || !chapter || !editedChapter) {
-    return <div className={styles.page}>Capítulo no encontrado</div>;
+    return <div className="page">Capítulo no encontrado</div>;
   }
 
   const handleSave = () => {
@@ -92,45 +93,31 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
   };
 
   return (
-    <main className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroGlow} />
-        <div className={styles.heroContent}>
-          <h1 className={styles.title}>Editar Capítulo #{editedChapter.number}</h1>
-          <p className={styles.subtitle}>
+    <main className="page">
+      <header className="hero">
+        <div className="heroGlow" />
+        <div className="heroContent">
+          <h1 className="title">Editar Capítulo #{editedChapter.number}</h1>
+          <p className="subtitle">
             Historia: {story.title} por {story.author}
           </p>
         </div>
-        <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
+        <div className="aiButtonContainer">
           <button
             onClick={handleAICorrection}
             title="IA: Corrige gramática y mejora la continuidad de la historia"
-            style={{
-              background: "var(--brand)",
-              color: "var(--bg)",
-              border: "none",
-              borderRadius: "8px",
-              padding: "12px 24px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "16px",
-              fontWeight: "bold",
-              boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-              gap: "8px",
-            }}
+            className="aiButton"
           >
             🤖 Kolla IA
           </button>
         </div>
       </header>
 
-      <section className={styles.meta} style={{ width: "100%", maxWidth: "100%", padding: "0", margin: "0" }}>
-        <article className={styles.card} style={{ width: "100%", display: "flex", flexDirection: "column", gap: "1rem", padding: "20px", boxSizing: "border-box" }}>
+      <section className="meta metaSection">
+        <article className="card cardArticle">
           <h2>Detalles del Capítulo</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            <label htmlFor="title" style={{ display: "block" }}>
+          <div className="formGroup">
+            <label htmlFor="title" className="label">
               Título
             </label>
             <input
@@ -138,57 +125,42 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
               type="text"
               value={editedChapter.title}
               onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, title: e.target.value } : prev)}
-              className={styles.input}
-              style={{ width: "100%", boxSizing: "border-box" }}
+              className="input input"
             />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            <label htmlFor="summary" style={{ display: "block" }}>
+          <div className="formGroup">
+            <label htmlFor="summary" className="label">
               Resumen
             </label>
             <textarea
               id="summary"
               value={editedChapter.summary}
               onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, summary: e.target.value } : prev)}
-              className={styles.input}
-              style={{ width: "100%", minHeight: "80px", resize: "vertical", boxSizing: "border-box" }}
+              className="input textarea"
             />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", flex: 1 }}>
-            <label htmlFor="content" style={{ display: "block" }}>
+          <div className="formGroup">
+            <label htmlFor="content" className="label">
               Contenido
             </label>
             {showComparison ? (
-              <div style={{ width: "100%", maxWidth: "100%", display: "flex", gap: "16px", flex: 1 }}>
-                <div style={{ flex: "1 1 50%", display: "flex", flexDirection: "column" }}>
-                  <h4 style={{ color: "var(--text-secondary)", marginBottom: "10px", fontSize: "14px" }}>Texto Original</h4>
+              <div className="comparisonContainer">
+                <div className="comparisonColumn">
+                  <h4 className="comparisonHeader comparisonHeaderOriginal">Texto Original</h4>
                   <textarea
                     id="content"
                     value={editedChapter.content || ""}
                     onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, content: e.target.value } : prev)}
-                    className={styles.input}
-                    style={{ width: "100%", minHeight: "400px", resize: "vertical", fontFamily: "monospace", fontSize: "14px", boxSizing: "border-box", flex: 1 }}
+                    className="input contentTextarea"
                     placeholder="Escribe el contenido completo del capítulo aquí..."
                   />
                 </div>
-                <div style={{ flex: "1 1 50%", display: "flex", flexDirection: "column" }}>
-                  <h4 style={{ color: "var(--brand)", marginBottom: "10px", fontSize: "14px" }}>Corregido por IA</h4>
+                <div className="comparisonColumn">
+                  <h4 className="comparisonHeader comparisonHeaderCorrected">Corregido por IA</h4>
                   <textarea
                     value={aiCorrectedContent}
                     readOnly
-                    style={{
-                      width: "100%",
-                      minHeight: "400px",
-                      resize: "vertical",
-                      fontFamily: "monospace",
-                      fontSize: "14px",
-                      boxSizing: "border-box",
-                      flex: 1,
-                      padding: "10px",
-                      border: "1px solid var(--border)",
-                      borderRadius: "4px",
-                      background: "var(--bg-secondary)",
-                    }}
+                    className="correctedTextarea"
                   />
                 </div>
               </div>
@@ -197,24 +169,23 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
                 id="content"
                 value={editedChapter.content || ""}
                 onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, content: e.target.value } : prev)}
-                className={styles.input}
-                style={{ width: "100%", minHeight: "400px", resize: "vertical", fontFamily: "monospace", fontSize: "14px", boxSizing: "border-box", flex: 1 }}
+                className="input contentTextarea"
                 placeholder="Escribe el contenido completo del capítulo aquí..."
               />
             )}
             {showComparison && (
-              <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "20px" }}>
-                <button onClick={handleApplyCorrection} className={styles.btnGhost} style={{ background: "var(--brand)", color: "var(--bg)" }}>
+              <div className="correctionButtons">
+                <button onClick={handleApplyCorrection} className="btnGhost" style={{ background: "var(--brand)", color: "var(--bg)" }}>
                   Aplicar Corrección
                 </button>
-                <button onClick={() => setShowComparison(false)} className={styles.btnGhost}>
+                <button onClick={() => setShowComparison(false)} className="btnGhost">
                   Cancelar
                 </button>
               </div>
             )}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <label className={styles.switch}>
+          <div className="publishedToggle">
+            <label className="switch">
               <input
                 type="checkbox"
                 checked={editedChapter.isPublished}
@@ -223,7 +194,7 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
               <span>Publicado</span>
             </label>
             {editedChapter.isPublished && editedChapter.publishedAt && (
-              <span className={styles.date}>
+              <span className="date">
                 Publicado el {new Date(editedChapter.publishedAt).toLocaleDateString()}
               </span>
             )}
@@ -231,12 +202,12 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
         </article>
       </section>
 
-      <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 20px 50px" }}>
-        <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
-          <button onClick={handleSave} className={styles.btnGhost} style={{ background: "var(--brand)", color: "var(--bg)" }}>
+      <section className="bottomSection">
+        <div className="bottomButtons">
+          <button onClick={handleSave} className="btnGhost" style={{ background: "var(--brand)", color: "var(--bg)" }}>
             Guardar Cambios
           </button>
-          <button onClick={() => router.back()} className={styles.btnGhost}>
+          <button onClick={() => router.back()} className="btnGhost">
             Cancelar
           </button>
         </div>
