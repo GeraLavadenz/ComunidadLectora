@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { registerUser, signInWithGoogle } from "@/services/auth";
+import { signInWithGoogle, registerUser } from "@/services/auth";
 import GoogleIcon from "./GoogleIcon";
 import styles from "../styles/RegisterForm.module.css";
 

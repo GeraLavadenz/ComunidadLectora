@@ -1,4 +1,4 @@
-// src/services/auth.ts
+// /services/auth.ts
 import { supabase } from "@/lib/supabase";
 
 export type NewUserInput = {
@@ -22,14 +22,11 @@ export async function registerUser(input: NewUserInput) {
     },
   });
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 
-  // Insert user profile into profiles table
   if (data.user) {
     const { error: profileError } = await supabase
-      .from('profiles')
+      .from("profiles")
       .insert({
         id: data.user.id,
         display_name: name,
@@ -37,40 +34,40 @@ export async function registerUser(input: NewUserInput) {
         role,
         photo_url: data.user.user_metadata?.avatar_url || null,
         created_at: new Date().toISOString(),
-        status: 'active',
+        status: "active",
       });
 
     if (profileError) {
-      console.error('Error creating profile:', profileError);
-      // Optionally, you might want to delete the user if profile creation fails
+      console.error("Error creating profile:", profileError);
+      // opcional: revertir el signup si lo considerás necesario
     }
   }
 
   return data.user;
 }
 
-/** Sign-in/up con Google: crea/actualiza perfil en Supabase. */
+/** Sign-in/up con Google (inicia flujo OAuth). */
 export async function signInWithGoogle(defaultRole: NewUserInput["role"] = "reader") {
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+    provider: "google",
     options: {
-      redirectTo: `${window.location.origin}/biblioteca`,
+      // recomiendo NO usar redirectTo salvo que hayas agregado EXACTAMENTE esa URL en Google Console
+      // redirectTo: `${window.location.origin}/biblioteca`,
       queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
+        access_type: "offline",
+        prompt: "consent",
       },
     },
   });
 
   if (error) {
-    if (error.message.includes('Unsupported provider')) {
-      throw new Error('Google OAuth no está configurado en Supabase. Ve a tu dashboard de Supabase > Authentication > Providers y habilita Google OAuth.');
+    if (error.message.includes("Unsupported provider")) {
+      throw new Error(
+        "Google OAuth no está configurado en Supabase. Ve a tu dashboard de Supabase > Authentication > Providers y habilita Google OAuth."
+      );
     }
     throw new Error(error.message);
   }
-
-  // Note: Profile creation for OAuth will be handled in a database trigger or auth hook
-  // since the user might not be immediately available after OAuth redirect
 
   return data;
 }
