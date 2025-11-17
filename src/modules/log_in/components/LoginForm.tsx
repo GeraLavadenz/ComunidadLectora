@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { auth, googleProvider, setAuthPersistence } from '@/lib/firebase';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
 import libroAbierto from '../assets/icons/libro-abierto.png';
 import libroCerrado from '../assets/icons/libro.png';
@@ -34,12 +33,15 @@ export default function LoginForm({ redirectParam }: LoginFormProps) {
     setStatus('loading');
     setError(null);
     try {
-      await setAuthPersistence(remember);
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw error;
       router.replace(redirectParam);
     } catch (err: unknown) {
-      const code = (err as { code?: string })?.code ?? 'auth/error';
-      setError(mapFirebaseError(code));
+      const message = (err as { message?: string })?.message ?? 'Error desconocido';
+      setError(mapSupabaseError(message));
       setStatus('error');
     } finally {
       setStatus('idle');
@@ -51,12 +53,22 @@ export default function LoginForm({ redirectParam }: LoginFormProps) {
     setStatus('loading');
     setError(null);
     try {
-      await setAuthPersistence(remember);
-      await signInWithPopup(auth, googleProvider);
-      router.replace(redirectParam);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}${redirectParam}`,
+        },
+      });
+      if (error) {
+        if (error.message.includes('Unsupported provider')) {
+          throw new Error('Google OAuth no está configurado en Supabase. Ve a tu dashboard de Supabase > Authentication > Providers y habilita Google OAuth.');
+        }
+        throw error;
+      }
+      // OAuth will redirect, so no need to call router.replace here
     } catch (err: unknown) {
-      const code = (err as { code?: string })?.code ?? 'auth/error';
-      setError(mapFirebaseError(code));
+      const message = (err as { message?: string })?.message ?? 'Error desconocido';
+      setError(mapSupabaseError(message));
       setStatus('error');
     } finally {
       setStatus('idle');
@@ -170,20 +182,21 @@ export default function LoginForm({ redirectParam }: LoginFormProps) {
   );
 }
 
-function mapFirebaseError(code: string): string {
-  switch (code) {
-    case 'auth/invalid-email':
-      return 'El correo no es válido.';
-    case 'auth/user-not-found':
-    case 'auth/wrong-password':
-      return 'Credenciales incorrectas.';
-    case 'auth/too-many-requests':
-      return 'Demasiados intentos. Intenta más tarde.';
-    case 'auth/popup-closed-by-user':
-      return 'Se cerró el popup de Google.';
-    case 'auth/network-request-failed':
-      return 'Problema de red. Verifica tu conexión.';
-    default:
-      return 'No se pudo iniciar sesión. Intenta nuevamente.';
+function mapSupabaseError(message: string): string {
+  if (message.includes('Invalid login credentials')) {
+    return 'Credenciales incorrectas.';
   }
+  if (message.includes('Email not confirmed')) {
+    return 'Confirma tu correo electrónico antes de iniciar sesión.';
+  }
+  if (message.includes('Too many requests')) {
+    return 'Demasiados intentos. Intenta más tarde.';
+  }
+  if (message.includes('Network request failed')) {
+    return 'Problema de red. Verifica tu conexión.';
+  }
+  if (message.includes('Unsupported provider')) {
+    return 'Google OAuth no está configurado en Supabase. Ve a tu dashboard de Supabase > Authentication > Providers y habilita Google OAuth.';
+  }
+  return 'No se pudo iniciar sesión. Intenta nuevamente.';
 }
