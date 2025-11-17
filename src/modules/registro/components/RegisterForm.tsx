@@ -70,8 +70,8 @@ export default function RegisterForm({ loading, oauthLoading, setLoading, setOau
       router.push("/biblioteca");
     } catch (error: unknown) {
       const msg = (error as Error)?.message || "Error al registrar.";
-      if (msg.includes("email-already-in-use")) setErr("Ese correo ya está registrado.");
-      else if (msg.includes("weak-password")) setErr("La contraseña es muy débil (min 6).");
+      if (msg.includes("User already registered")) setErr("Ese correo ya está registrado.");
+      else if (msg.includes("Password should be at least 6 characters")) setErr("La contraseña es muy débil (min 6).");
       else setErr(msg);
     } finally {
       setLoading(false);
