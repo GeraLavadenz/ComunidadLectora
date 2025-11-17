@@ -1,6 +1,8 @@
+"use client";
+
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithGoogle, registerUser } from "@/services/auth";
+import { registerUser, signInWithGoogle } from "@/services/auth";
 import GoogleIcon from "./GoogleIcon";
 import styles from "../styles/RegisterForm.module.css";
 
@@ -19,8 +21,14 @@ interface RegisterFormProps {
   setOauthLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function RegisterForm({ loading, oauthLoading, setLoading, setOauthLoading }: RegisterFormProps) {
+export default function RegisterForm({
+  loading,
+  oauthLoading,
+  setLoading,
+  setOauthLoading,
+}: RegisterFormProps) {
   const router = useRouter();
+
   const [form, setForm] = useState<Form>({
     name: "",
     email: "",
@@ -28,38 +36,48 @@ export default function RegisterForm({ loading, oauthLoading, setLoading, setOau
     confirm: "",
     role: "reader",
   });
-  const [showPwd, setShowPwd] = useState(false);
 
+  const [showPwd, setShowPwd] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
+  // VALIDACIONES
   const errors = useMemo(() => {
     const e: Partial<Record<keyof Form, string>> = {};
+
     if (!form.name.trim()) e.name = "El nombre es obligatorio.";
     if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Correo inválido.";
     if (form.password.length < 6) e.password = "Mínimo 6 caracteres.";
-    if (form.confirm !== form.password) e.confirm = "Las contraseñas no coinciden.";
+    if (form.confirm !== form.password)
+      e.confirm = "Las contraseñas no coinciden.";
+
     return e;
   }, [form]);
 
-  const canSubmit = useMemo(
-    () => Object.keys(errors).length === 0,
-    [errors]
-  );
+  const canSubmit = Object.keys(errors).length === 0;
 
-  const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const onBlur = (
+    e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setTouched((t) => ({ ...t, [e.target.name]: true }));
+  };
 
   const onChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+  ) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
+  // SUBMIT NORMAL
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched({ name: true, email: true, password: true, confirm: true });
-    if (!canSubmit) return;
     setErr(null);
+    setTouched({ name: true, email: true, password: true, confirm: true });
+
+    if (!canSubmit) return;
+
     setLoading(true);
+
     try {
       await registerUser({
         name: form.name.trim(),
@@ -67,33 +85,40 @@ export default function RegisterForm({ loading, oauthLoading, setLoading, setOau
         password: form.password,
         role: form.role,
       });
+
       router.push("/biblioteca");
-    } catch (error: unknown) {
-      const msg = (error as Error)?.message || "Error al registrar.";
-      if (msg.includes("User already registered")) setErr("Ese correo ya está registrado.");
-      else if (msg.includes("Password should be at least 6 characters")) setErr("La contraseña es muy débil (min 6).");
+    } catch (error: any) {
+      const msg = error?.message || "Error al registrar.";
+
+      if (msg.includes("User already registered"))
+        setErr("Ese correo ya está registrado.");
+      else if (msg.includes("Password"))
+        setErr("La contraseña es muy débil (mínimo 6).");
       else setErr(msg);
     } finally {
       setLoading(false);
     }
+      
   };
 
+  // GOOGLE
   const onGoogle = async () => {
     setErr(null);
     setOauthLoading(true);
+
     try {
       await signInWithGoogle(form.role);
-      router.push("/biblioteca");
-    } catch (error: unknown) {
-      setErr((error as Error)?.message || "No se pudo continuar con Google.");
-    } finally {
+      // 👉 redirige fuera de tu app al login de Google
+      // el callback se maneja en /auth/callback
+    } catch (error: any) {
+      setErr(error?.message || "No se pudo continuar con Google.");
       setOauthLoading(false);
     }
   };
 
   return (
     <>
-      {/* Botón Google */}
+      {/* GOOGLE BUTTON */}
       <button
         type="button"
         className={styles.oauthBtn}
@@ -110,11 +135,9 @@ export default function RegisterForm({ loading, oauthLoading, setLoading, setOau
       </div>
 
       <form className={styles.form} onSubmit={onSubmit} noValidate>
-        {/* Nombre */}
+        {/* NOMBRE */}
         <div className={styles.group}>
-          <label htmlFor="name">
-            Nombre <span className={styles.required} title="Campo obligatorio">*</span>
-          </label>
+          <label htmlFor="name">Nombre *</label>
           <input
             id="name"
             name="name"
@@ -122,21 +145,15 @@ export default function RegisterForm({ loading, oauthLoading, setLoading, setOau
             onChange={onChange}
             onBlur={onBlur}
             placeholder="Tu nombre"
-            required
-            aria-required="true"
-            aria-invalid={touched.name && !!errors.name}
-            data-invalid={touched.name && !!errors.name || undefined}
           />
           {touched.name && errors.name && (
             <small className={styles.errMsg}>{errors.name}</small>
           )}
         </div>
 
-        {/* Correo */}
+        {/* EMAIL */}
         <div className={styles.group}>
-          <label htmlFor="email">
-            Correo <span className={styles.required} title="Campo obligatorio">*</span>
-          </label>
+          <label htmlFor="email">Correo *</label>
           <input
             id="email"
             name="email"
@@ -145,22 +162,16 @@ export default function RegisterForm({ loading, oauthLoading, setLoading, setOau
             onChange={onChange}
             onBlur={onBlur}
             placeholder="tucorreo@ejemplo.com"
-            required
-            aria-required="true"
-            aria-invalid={touched.email && !!errors.email}
-            data-invalid={touched.email && !!errors.email || undefined}
           />
           {touched.email && errors.email && (
             <small className={styles.errMsg}>{errors.email}</small>
           )}
         </div>
 
-        {/* Password + Confirm */}
+        {/* PASSWORDS */}
         <div className={styles.row}>
           <div className={styles.group}>
-            <label htmlFor="password">
-              Contraseña <span className={styles.required} title="Campo obligatorio">*</span>
-            </label>
+            <label htmlFor="password">Contraseña *</label>
             <input
               id="password"
               name="password"
@@ -169,10 +180,6 @@ export default function RegisterForm({ loading, oauthLoading, setLoading, setOau
               onChange={onChange}
               onBlur={onBlur}
               placeholder="Mínimo 6 caracteres"
-              required
-              aria-required="true"
-              aria-invalid={touched.password && !!errors.password}
-              data-invalid={touched.password && !!errors.password || undefined}
             />
             {touched.password && errors.password && (
               <small className={styles.errMsg}>{errors.password}</small>
@@ -180,9 +187,7 @@ export default function RegisterForm({ loading, oauthLoading, setLoading, setOau
           </div>
 
           <div className={styles.group}>
-            <label htmlFor="confirm">
-              Confirmar <span className={styles.required} title="Campo obligatorio">*</span>
-            </label>
+            <label htmlFor="confirm">Confirmar *</label>
             <input
               id="confirm"
               name="confirm"
@@ -191,10 +196,6 @@ export default function RegisterForm({ loading, oauthLoading, setLoading, setOau
               onChange={onChange}
               onBlur={onBlur}
               placeholder="Repite tu contraseña"
-              required
-              aria-required="true"
-              aria-invalid={touched.confirm && !!errors.confirm}
-              data-invalid={touched.confirm && !!errors.confirm || undefined}
             />
             {touched.confirm && errors.confirm && (
               <small className={styles.errMsg}>{errors.confirm}</small>
@@ -202,35 +203,31 @@ export default function RegisterForm({ loading, oauthLoading, setLoading, setOau
           </div>
         </div>
 
-        {/* Opciones inline */}
-        <div className={styles.inline}>
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              onChange={() => setShowPwd((v) => !v)}
-              checked={showPwd}
-            />
-            <span>Mostrar contraseña</span>
-          </label>
+        {/* OPCIÓN MOSTRAR PASSWORD */}
+        <label className={styles.checkbox}>
+          <input
+            type="checkbox"
+            onChange={() => setShowPwd((v) => !v)}
+            checked={showPwd}
+          />
+          <span>Mostrar contraseña</span>
+        </label>
 
-        </div>
+        {/* ERROR GLOBAL */}
+        {err && <div className={styles.error}>{err}</div>}
 
-        {/* Error global */}
-        {err && <div className={styles.error} role="alert">{err}</div>}
-
-        {/* Submit */}
+        {/* SUBMIT */}
         <button
-          className={styles.submit}
           type="submit"
+          className={styles.submit}
           disabled={!canSubmit || loading}
-          data-pending={loading || undefined}
         >
           {loading ? "Creando..." : "Crear cuenta"}
         </button>
 
         <p className={styles.note}>
-          <span className={styles.required} aria-hidden>*</span> Campos obligatorios. Al registrarte,
-          aceptas nuestros Términos y la Política de Privacidad.
+          * Campos obligatorios. Al registrarte aceptas nuestros Términos y
+          Política de Privacidad.
         </p>
       </form>
 
@@ -240,5 +237,3 @@ export default function RegisterForm({ loading, oauthLoading, setLoading, setOau
     </>
   );
 }
-
-

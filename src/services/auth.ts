@@ -1,73 +1,61 @@
-// /services/auth.ts
+// src/services/auth.ts
 import { supabase } from "@/lib/supabase";
 
-export type NewUserInput = {
+type RegisterPayload = {
   name: string;
   email: string;
   password: string;
-  role?: "reader" | "author" | "moderator" | "admin";
+  role: "reader" | "author";
 };
 
-export async function registerUser(input: NewUserInput) {
-  const { name, email, password, role = "reader" } = input;
-
+// REGISTRO NORMAL (email + password)
+export async function registerUser({ name, email, password, role }: RegisterPayload) {
+  // 1) Crear usuario en auth
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data: {
-        display_name: name,
-        role,
-      },
-    },
+    options: { data: { nombre: name, role } }
   });
 
-  if (error) throw new Error(error.message);
+  if (error) throw error;
 
-  if (data.user) {
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .insert({
-        id: data.user.id,
-        display_name: name,
-        email,
-        role,
-        photo_url: data.user.user_metadata?.avatar_url || null,
-        created_at: new Date().toISOString(),
-        status: "active",
-      });
+  const user = data.user;
+  if (!user) throw new Error("No se pudo crear el usuario.");
 
-    if (profileError) {
-      console.error("Error creating profile:", profileError);
-      // opcional: revertir el signup si lo considerás necesario
+  // 2) Crear perfil en tu tabla "profiles"
+  const { error: insertErr } = await supabase.from("profiles").insert([
+    {
+      id: user.id,
+      username: name.replace(/\s+/g, "").toLowerCase(),
+      display_name: name,
+      email: email,
+      role,
+      provider: "email",
+      provider_id: user.id,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
-  }
+  ]);
 
-  return data.user;
+  if (insertErr) throw insertErr;
+
+  return user;
 }
 
-/** Sign-in/up con Google (inicia flujo OAuth). */
-export async function signInWithGoogle(defaultRole: NewUserInput["role"] = "reader") {
+// LOGIN CON GOOGLE
+export async function signInWithGoogle(role: "reader" | "author") {
+  const redirectTo = `${window.location.origin}/auth/callback?role=${role}`;
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      // recomiendo NO usar redirectTo salvo que hayas agregado EXACTAMENTE esa URL en Google Console
-      // redirectTo: `${window.location.origin}/biblioteca`,
-      queryParams: {
-        access_type: "offline",
-        prompt: "consent",
-      },
-    },
+      redirectTo,
+      queryParams: { prompt: "select_account" }
+    }
   });
 
-  if (error) {
-    if (error.message.includes("Unsupported provider")) {
-      throw new Error(
-        "Google OAuth no está configurado en Supabase. Ve a tu dashboard de Supabase > Authentication > Providers y habilita Google OAuth."
-      );
-    }
-    throw new Error(error.message);
-  }
+  if (error) throw error;
 
   return data;
 }
