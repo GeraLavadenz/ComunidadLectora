@@ -63,7 +63,6 @@ export default function BookCard({ book }: BookCardProps) {
         <div className="flex flex-col gap-2 min-w-0">
           <h3 className="text-lg font-semibold truncate">{book.title}</h3>
           <div className={`${palette.muted} text-sm`}>por <span className="text-neutral-200">{book.author}</span></div>
-          <Stars value={book.rating ?? 0} />
 
           <div className="flex flex-wrap gap-2 mt-1">
             {book.genres.map((g) => (

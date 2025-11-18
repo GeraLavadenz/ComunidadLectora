@@ -6,9 +6,10 @@ import { Loader2 } from "lucide-react";
 import TopBar from "./components/TopBar";
 import FiltersPanel from "./components/FiltersPanel";
 import BookCard from "./components/BookCard";
-import { BOOKS, type Book } from "./data/books";
+import { type Book } from "./data/books";
 import useDebounced from "./hooks/useDebounced";
 import { normalize } from "./utils/filters";
+import { supabase } from "@/lib/supabase";
 import styles from "./styles/biblioteca.module.css";
 
 interface BibliotecaProps {
@@ -40,6 +41,10 @@ function formatGenre(slug?: string | null) {
 export default function BibliotecaPage({ genre }: BibliotecaProps) {
   const displayGenre = formatGenre(genre);
 
+  // Estado de libros desde BD
+  const [books, setBooks] = useState<Book[]>([]);
+  const [booksLoading, setBooksLoading] = useState(true);
+
   // Estado de filtros
   const [query, setQuery] = useState("");
   const [author, setAuthor] = useState("");
@@ -50,16 +55,51 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
   const debouncedQuery = useDebounced(query, 250);
   const debouncedAuthor = useDebounced(author, 250);
 
+  // Fetch libros desde BD
+  useEffect(() => {
+    const fetchBooks = async () => {
+      setBooksLoading(true);
+      const { data, error } = await supabase
+        .from('vw_library_books')
+        .select('*');
+      if (error) {
+        console.error('Error fetching books:', error);
+        setBooks([]);
+      } else {
+        interface LibraryBook {
+          story_id: string;
+          title: string;
+          author_name: string;
+          genres: string | null;
+          tags: string | null;
+          cover_url: string | null;
+        }
+
+        const mappedBooks: Book[] = (data as LibraryBook[]).map((item) => ({
+          id: item.story_id,
+          title: item.title,
+          author: item.author_name,
+          genres: item.genres ? item.genres.split(',').map((g) => g.trim()) : [],
+          tags: item.tags ? item.tags.split(',').map((t) => t.trim()) : [],
+          cover: item.cover_url || undefined,
+        }));
+        setBooks(mappedBooks);
+      }
+      setBooksLoading(false);
+    };
+    fetchBooks();
+  }, []);
+
   // Catálogos únicos
   const catalog = useMemo(() => {
     const g = new Set<string>();
     const t = new Set<string>();
-    BOOKS.forEach((b) => {
+    books.forEach((b) => {
       b.genres.forEach((x) => g.add(x));
       b.tags.forEach((x) => t.add(x));
     });
     return { genres: Array.from(g).sort(), tags: Array.from(t).sort() };
-  }, []);
+  }, [books]);
 
   // Simular "carga" cuando cambian filtros para ver la animación
   useEffect(() => {
@@ -72,16 +112,16 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
   const filtered = useMemo(() => {
     const q = normalize(debouncedQuery);
     const a = normalize(debouncedAuthor);
-    return BOOKS.filter((b) => {
+    return books.filter((b: Book) => {
       const titleOk = q ? normalize(b.title).includes(q) || normalize(b.author).includes(q) : true;
       const authorOk = a ? normalize(b.author).includes(a) : true;
-      const genreOk = genres.size ? b.genres.some((g) => genres.has(g)) : true;
-      const tagOk = tags.size ? b.tags.some((t) => tags.has(t)) : true;
+      const genreOk = genres.size ? b.genres.some((g: string) => genres.has(g)) : true;
+      const tagOk = tags.size ? b.tags.some((t: string) => tags.has(t)) : true;
       // Si hay género desde URL, filtrar solo por ese género
-      const urlGenreOk = genre ? b.genres.some((g) => normalize(g).includes(normalize(genre))) : true;
+      const urlGenreOk = genre ? b.genres.some((g: string) => normalize(g).includes(normalize(genre))) : true;
       return titleOk && authorOk && genreOk && tagOk && urlGenreOk;
     });
-  }, [debouncedQuery, debouncedAuthor, genres, tags, genre]);
+  }, [books, debouncedQuery, debouncedAuthor, genres, tags, genre]);
 
   // Chips activos para la barra superior
   const activeChips = useMemo(() => {
@@ -138,9 +178,25 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
 
           {/* Grid de resultados */}
           <section>
-            {/* Estado de carga */}
+            {/* Estado de carga inicial */}
             <AnimatePresence initial={false}>
-              {loading && (
+              {booksLoading && (
+                <motion.div
+                  key="books-loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className={styles.loading}
+                >
+                  <Loader2 className="size-4 animate-spin" />
+                  <span className="text-sm">Cargando libros…</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Estado de carga de filtros */}
+            <AnimatePresence initial={false}>
+              {loading && !booksLoading && (
                 <motion.div
                   key="loading"
                   initial={{ opacity: 0 }}
@@ -155,7 +211,7 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
             </AnimatePresence>
 
             <AnimatePresence mode="popLayout">
-              {filtered.length === 0 ? (
+              {!booksLoading && filtered.length === 0 ? (
                 <motion.div
                   key="empty"
                   initial={{ opacity: 0, y: 4 }}
@@ -165,7 +221,7 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
                 >
                   No se encontraron libros con los filtros actuales.
                 </motion.div>
-              ) : (
+              ) : !booksLoading && (
                 <motion.div
                   key="grid"
                   layout

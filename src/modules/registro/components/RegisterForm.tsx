@@ -86,7 +86,8 @@ export default function RegisterForm({
         role: form.role,
       });
 
-      router.push("/biblioteca");
+      // No redirigir inmediatamente - mostrar mensaje de confirmación
+      setErr("¡Registro exitoso! Revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión.");
     } catch (error: any) {
       const msg = error?.message || "Error al registrar.";
 
