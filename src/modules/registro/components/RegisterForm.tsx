@@ -102,19 +102,18 @@ export default function RegisterForm({
   };
 
   // GOOGLE
-  const onGoogle = async () => {
-    setErr(null);
-    setOauthLoading(true);
+const onGoogle = async () => {
+  setErr(null);
+  setOauthLoading(true);
 
-    try {
-      await signInWithGoogle(form.role);
-      // 👉 redirige fuera de tu app al login de Google
-      // el callback se maneja en /auth/callback
-    } catch (error: any) {
-      setErr(error?.message || "No se pudo continuar con Google.");
-      setOauthLoading(false);
-    }
-  };
+  try {
+    await signInWithGoogle(form.role); // ← ahora esta función es la nueva
+    // Aquí NO necesitas hacer nada más, Supabase te redirige solo
+  } catch (error: any) {
+    setErr("Error con Google: " + error.message);
+    setOauthLoading(false);
+  }
+};
 
   return (
     <>

@@ -1,60 +1,28 @@
-// src/app/auth/callback/page.tsx
-'use client';
-import { useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+// app/auth/callback/route.ts
+import { createRouteHandlerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
-export default function OAuthCallbackPage() {
-  const router = useRouter();
+export async function GET(request: Request) {
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
 
-  useEffect(() => {
-    (async () => {
-      try {
-        // procesa la URL y guarda la sesión en el cliente
-        const url = new URL(window.location.href);
-        const code = url.searchParams.get('code');
-        if (!code) throw new Error("No auth code found");
+  if (code) {
+    const supabase = createRouteHandlerClient({ cookies })
+    await supabase.auth.exchangeCodeForSession(code)
+  }
 
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) throw error;
+  // Recuperamos el rol que guardamos antes del login
+  const preferredRole = typeof window !== 'undefined' 
+    ? localStorage.getItem('preferred_role') 
+    : null
 
-        const user = data.user;
-        if (!user) return router.push("/login?error=no-user");
+  localStorage.removeItem('preferred_role') // lo limpiamos
 
-        const role = url.searchParams.get("role") || "reader";
-
-        // comprobar si ya existe perfil
-        const { data: existing, error: selErr } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("id", user.id)
-          .maybeSingle();
-        if (selErr) console.warn(selErr);
-
-        if (!existing) {
-          const meta: Record<string, unknown> = user.user_metadata || {};
-          await supabase.from("profiles").insert([{
-            id: user.id,
-            username: (meta.name || user.email || "").toString().replace(/\s+/g, "").toLowerCase(),
-            display_name: meta.name || "",
-            email: user.email,
-            avatar_url: meta.avatar_url || meta.picture || "",
-            role,
-            provider: "google",
-            provider_id: user.id,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }]);
-        }
-
-        router.push("/biblioteca");
-      } catch (e) {
-        console.error("OAuth callback error", e);
-        router.push("/login?error=oauth");
-      }
-    })();
-    }, [router]);
-
-  return <div>Procesando inicio de sesión...</div>;
+  // Redirigimos según el rol o a donde quieras
+  return NextResponse.redirect(
+    preferredRole === 'author' 
+      ? `${requestUrl.origin}/dashboard` 
+      : `${requestUrl.origin}/biblioteca`
+  )
 }

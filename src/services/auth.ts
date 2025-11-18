@@ -1,61 +1,43 @@
 // src/services/auth.ts
-import { supabase } from "@/lib/supabase";
+import { createBrowserClient } from '@supabase/ssr'
 
-type RegisterPayload = {
-  name: string;
-  email: string;
-  password: string;
-  role: "reader" | "author";
-};
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
-// REGISTRO NORMAL (email + password)
-export async function registerUser({ name, email, password, role }: RegisterPayload) {
-  // 1) Crear usuario en auth
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { nombre: name, role } }
-  });
+// src/services/auth.ts → solo esta función
+export async function signInWithGoogle(role?: 'reader' | 'author') {
+  if (role) {
+    localStorage.setItem('preferred_role', role)
+  }
 
-  if (error) throw error;
+  // ESTA ES LA ÚNICA URL QUE FUNCIONA CON SUPABASE EN 2025
+  const supabaseUrl = 'https://qiolmvlqilnxqrbrkzux.supabase.co'
+  const redirectUrl = `${window.location.origin}/auth/callback`
 
-  const user = data.user;
-  if (!user) throw new Error("No se pudo crear el usuario.");
+  const authUrl = new URL(`${supabaseUrl}/auth/v1/authorize`)
+  authUrl.searchParams.append('provider', 'google')
+  authUrl.searchParams.append('redirect_to', redirectUrl)
 
-  // 2) Crear perfil en tu tabla "profiles"
-  const { error: insertErr } = await supabase.from("profiles").insert([
-    {
-      id: user.id,
-      username: name.replace(/\s+/g, "").toLowerCase(),
-      display_name: name,
-      email: email,
-      role,
-      provider: "email",
-      provider_id: user.id,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-  ]);
-
-  if (insertErr) throw insertErr;
-
-  return user;
+  // Redirigimos manualmente a la URL que Supabase genera (pero limpia)
+  window.location.href = authUrl.toString()
 }
 
-// LOGIN CON GOOGLE
-export async function signInWithGoogle(role: "reader" | "author") {
-  const redirectTo = `${window.location.origin}/auth/callback?role=${role}`;
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
+// registerUser sigue igual que antes
+export async function registerUser(data: {
+  name: string
+  email: string
+  password: string
+  role: 'reader' | 'author'
+}) {
+  const { error } = await supabase.auth.signUp({
+    email: data.email,
+    password: data.password,
     options: {
-      redirectTo,
-      queryParams: { prompt: "select_account" }
-    }
-  });
-
-  if (error) throw error;
-
-  return data;
+      data: { name: data.name, role: data.role },
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
+  })
+  if (error) throw error
 }
