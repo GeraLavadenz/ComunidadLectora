@@ -6,12 +6,14 @@ import {
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDgBLknDH7Ypf6TplzFv6OWRK55wXXdrtg",
-    authDomain: "kolla-dev-36e79.firebaseapp.com",
-    projectId: "kolla-dev-36e79",
-    storageBucket: "kolla-dev-36e79.firebasestorage.app",
-    messagingSenderId: "899719271929",
-    appId: "1:899719271929:web:41e3e6629437b1dd0a9928"
+    apiKey: "AIzaSyCUFOHlPDn6BI9SeD62w4bI-5-S6uoLfi8",
+  authDomain: "kolla2.firebaseapp.com",
+  projectId: "kolla2",
+  storageBucket: "kolla2.firebasestorage.app",
+  messagingSenderId: "290738901626",
+  appId: "1:290738901626:web:1ec1f956287d15028961c3",
+  measurementId: "G-F5EN726WY9"
+    
 };
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
