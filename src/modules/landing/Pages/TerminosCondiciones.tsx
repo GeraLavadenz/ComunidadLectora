@@ -61,7 +61,7 @@ const TerminosCondiciones: React.FC = () => {
             <h2>6. Limitación de Responsabilidad</h2>
             <p>
               Comunidad Lectora Bolivia no se hace responsable por daños directos, indirectos o consecuentes que puedan surgir
-              del uso del servicio. El servicio se proporciona "tal cual" sin garantías.
+              del uso del servicio. El servicio se proporciona &ldquo;tal cual&rdquo; sin garantías.
             </p>
           </div>
 
@@ -76,8 +76,8 @@ const TerminosCondiciones: React.FC = () => {
           <div className={styles.card}>
             <h2>8. Contacto</h2>
             <p>
-              Si tienes preguntas sobre estos términos y condiciones, puedes contactarnos a través de nuestro "formulario
-              de contacto" o enviando un "correo electrónico" a soporte@comunidadlectorabolivia.com.
+              Si tienes preguntas sobre estos términos y condiciones, puedes contactarnos a través de nuestro &ldquo;formulario
+              de contacto&rdquo; o enviando un &ldquo;correo electrónico&rdquo; a soporte@comunidadlectorabolivia.com.
             </p>
           </div>
         </div>
