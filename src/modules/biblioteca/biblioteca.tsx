@@ -52,6 +52,10 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
   const [tags, setTags] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 
+  // Estado de géneros y etiquetas disponibles
+  const [allGenres, setAllGenres] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
+
   const debouncedQuery = useDebounced(query, 250);
   const debouncedAuthor = useDebounced(author, 250);
 
@@ -161,8 +165,8 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
         <div className="grid">
           {/* Panel de filtros */}
           <FiltersPanel
-            allGenres={catalog.genres}
-            allTags={catalog.tags}
+            allGenres={allGenres}
+            allTags={allTags}
             selectedGenres={genres}
             selectedTags={tags}
             author={author}

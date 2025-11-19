@@ -24,7 +24,7 @@ export async function signInWithGoogle(role?: 'reader' | 'author') {
   window.location.href = authUrl.toString()
 }
 
-// registerUser sigue igual que antes
+// registerUser modificado para auto-login sin confirmación
 export async function registerUser(data: {
   name: string
   email: string
@@ -36,7 +36,6 @@ export async function registerUser(data: {
     password: data.password,
     options: {
       data: { name: data.name, role: data.role },
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
     },
   })
   if (error) throw error

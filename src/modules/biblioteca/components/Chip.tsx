@@ -1,6 +1,6 @@
 import React from "react";
 import { Tag } from "lucide-react";
-import "./Chip.css";
+import "../styles/Chip.css";
 
 interface ChipProps {
   label: string;

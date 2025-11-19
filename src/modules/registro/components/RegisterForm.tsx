@@ -86,8 +86,8 @@ export default function RegisterForm({
         role: form.role,
       });
 
-      // No redirigir inmediatamente - mostrar mensaje de confirmación
-      setErr("¡Registro exitoso! Revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión.");
+      // Redirigir automáticamente después del registro exitoso
+      router.push(form.role === 'author' ? '/dashboard' : '/biblioteca');
     } catch (error: any) {
       const msg = error?.message || "Error al registrar.";
 
@@ -103,18 +103,18 @@ export default function RegisterForm({
   };
 
   // GOOGLE
-const onGoogle = async () => {
-  setErr(null);
-  setOauthLoading(true);
+  const onGoogle = async () => {
+    setErr(null);
+    setOauthLoading(true);
 
-  try {
-    await signInWithGoogle(form.role); // ← ahora esta función es la nueva
-    // Aquí NO necesitas hacer nada más, Supabase te redirige solo
-  } catch (error: any) {
-    setErr("Error con Google: " + error.message);
-    setOauthLoading(false);
-  }
-};
+    try {
+      await signInWithGoogle(form.role); // ← ahora esta función es la nueva
+      // Aquí NO necesitas hacer nada más, Supabase te redirige solo
+    } catch (error: any) {
+      setErr("Error con Google: " + error.message);
+      setOauthLoading(false);
+    }
+  };
 
   return (
     <>

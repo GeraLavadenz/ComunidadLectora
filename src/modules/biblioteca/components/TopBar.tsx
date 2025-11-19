@@ -1,7 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
-import "./TopBar.css";
+import "../styles/TopBar.css";
 
 interface TopBarProps {
   query: string;

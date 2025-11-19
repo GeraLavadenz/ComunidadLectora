@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Filter, ChevronDown } from "lucide-react";
 import Chip from "./Chip";
-import "./FiltersPanel.css";
+import "../styles/FiltersPanel.css";
 
 interface FiltersPanelProps {
   allGenres: string[];
