@@ -184,7 +184,7 @@ function StoryDetail({ story }) {
             />
           </div>
 
-          <p className="note">Puedes modificar <strong>géneros</strong> y <strong>etiquetas</strong> incluso si hay capítulos publicados. Estos cambios no afectan el estado de publicación de los capítulos.</p>
+          <p className="note">Puedes modificar <strong>&ldquo;géneros&rdquo;</strong> y <strong>&ldquo;etiquetas&rdquo;</strong> incluso si hay capítulos publicados. Estos cambios no afectan el estado de publicación de los capítulos.</p>
         </article>
 
         <article className="card">
