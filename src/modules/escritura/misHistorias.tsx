@@ -30,6 +30,10 @@ const MisHistorias = () => {
     router.push(`/escritura/capitulos/${id}`);
   };
 
+  const handleView = (id: string) => {
+    router.push(`/escritura/historias/${id}/ver`);
+  };
+
   const handleCreate = () => {
     const id = `h-${storiesList.length + 1}`;
     const newS = {
@@ -140,7 +144,7 @@ const MisHistorias = () => {
             <p><strong>Creado:</strong> {historia.fecha}</p>
 
             <div className={styles.actions}>
-              <button className={`${styles.btn} ${styles.view}`}>
+              <button className={`${styles.btn} ${styles.view}`} onClick={() => handleView(historia.id)}>
                 <Eye size={18} /> Ver
               </button>
               <button className={`${styles.btn} ${styles.edit}`} onClick={() => handleEdit(historia.id)}>
