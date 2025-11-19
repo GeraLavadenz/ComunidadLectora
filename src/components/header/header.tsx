@@ -97,6 +97,7 @@ const Header: React.FC = () => {
         {/* Logo - Left */}
         <div className={styles.logoContainer}>
           <Link href="/">
+            {/* eslint-disable-next-line react/jsx-no-undef */}
             <Image
               src={logoCompleto}
               alt="Comunidad Lectora Bolivia"
@@ -105,6 +106,7 @@ const Header: React.FC = () => {
               className={styles.logoCompleto}
               priority
             />
+            {/* eslint-disable-next-line react/jsx-no-undef */}
             <Image
               src={minilogo}
               alt="Comunidad Lectora Bolivia"
