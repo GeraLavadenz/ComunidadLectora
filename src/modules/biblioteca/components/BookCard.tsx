@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Stars from "./Stars";
-import "./BookCard.css";
+import "../styles/BookCard.css";
 
 export type Book = {
   id: string;

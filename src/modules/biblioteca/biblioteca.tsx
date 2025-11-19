@@ -105,6 +105,12 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
     return { genres: Array.from(g).sort(), tags: Array.from(t).sort() };
   }, [books]);
 
+  // Actualizar allGenres y allTags desde el catálogo
+  useEffect(() => {
+    setAllGenres(catalog.genres);
+    setAllTags(catalog.tags);
+  }, [catalog]);
+
   // Simular "carga" cuando cambian filtros para ver la animación
   useEffect(() => {
     setLoading(true);
