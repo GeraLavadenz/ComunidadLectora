@@ -1,0 +1,15 @@
+.login-header {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 18px;
+}
+.login-title {
+  margin: 0 0 6px;
+  font-size: clamp(22px, 2.6vw, 28px);
+  letter-spacing: 0.2px;
+}
+.login-subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}

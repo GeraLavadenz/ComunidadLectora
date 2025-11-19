@@ -1,0 +1,140 @@
+:root {
+  --coment-bg: #ffffff;
+  --coment-text: #121212;
+}
+
+.dark {
+  --coment-bg: #1a1a1a;
+  --coment-text: #e0e0e0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+
+  .landing-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4rem 1rem;
+    max-width: 100%;
+    margin: 0 auto;
+    background: var(--coment-bg);
+    color: var(--coment-text);
+  }
+
+  @media (max-width: 768px) {
+    .landing-section {
+      flex-direction: column;
+      padding: 2rem 0.75rem;
+      text-align: center;
+    }
+  }
+  
+  .image-area {
+    position: relative;
+    width: 45%;
+  }
+
+  @media (max-width: 768px) {
+    .image-area {
+      width: 100%;
+      margin-bottom: 2rem;
+    }
+  }
+  
+  /* Ilustración */
+  .illustration {
+    width: 100%;
+    display: block;
+  }
+  
+  /* Comentarios flotantes */
+  .comment {
+    position: absolute;
+    background: white;
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.15);
+    border-radius: 15px;
+    padding: 1rem 1.5rem;
+    width: 220px;
+    font-size: 0.85rem;
+    color: #121212;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  /* Avatar en comentario */
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  /* Likes */
+  .likes {
+    margin-left: auto;
+    color: #777777;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  /* Posiciones específicas de los comentarios */
+  .comment-1 {
+    top: 20%;
+    left: 10%;
+  }
+  
+  .comment-2 {
+    bottom: 20%;
+    right: 15%;
+  }
+  
+  /* Área de texto */
+  .text-area {
+    width: 50%;
+  }
+
+  @media (max-width: 768px) {
+    .text-area {
+      width: 100%;
+    }
+  }
+
+  .text-area h1 {
+    font-weight: 900;
+    font-size: 2rem;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+  }
+
+  @media (min-width: 480px) {
+    .text-area h1 {
+      font-size: 2.25rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .text-area h1 {
+      font-size: 2.5rem;
+    }
+  }
+
+  .text-area p {
+    font-weight: 400;
+    font-size: 1rem;
+    line-height: 1.5;
+    max-width: 500px;
+  }
+
+  @media (min-width: 480px) {
+    .text-area p {
+      font-size: 1.125rem;
+    }
+  }
+  

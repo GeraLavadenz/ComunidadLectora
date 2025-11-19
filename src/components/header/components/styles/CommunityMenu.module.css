@@ -1,0 +1,52 @@
+.menuTrigger {
+  color: #187A25;
+  background: transparent;
+  font-size: 1.125rem;
+}
+
+.menuTrigger:hover {
+  color: #4CD23D;
+}
+
+.menuTrigger[data-state="open"] {
+  background: rgba(44, 142, 44, 0.1);
+}
+
+.menuContent {
+  width: 14rem;
+  background: white;
+  border: 1px solid #165C1E;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  left: 0;
+}
+
+.contentHeader {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.contentTitle {
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: #187A25;
+}
+
+.menuList {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.menuLink {
+  display: block;
+  width: 100%;
+  padding: 1rem;
+  color: #187A25;
+}
+
+.menuLink:hover {
+  background: rgba(76, 210, 61, 0.1);
+  color: #4CD23D;
+}

@@ -1,0 +1,260 @@
+:root {
+  --book-shelves-bg: #f9f9f9;
+  --book-shelves-text: #165C1E;
+  --book-shelves-highlight: #187A25;
+  --book-shelves-shelf-bg: #8b4513;
+  --book-shelves-shelf-border: #654321;
+}
+
+.dark {
+  --book-shelves-bg: #1a1a1a;
+  --book-shelves-text: #e0e0e0;
+  --book-shelves-highlight: #4CD23D;
+  --book-shelves-shelf-bg: #654321;
+  --book-shelves-shelf-border: #8b4513;
+}
+
+.book-shelves-section {
+  padding: 4rem 1rem;
+  background-color: var(--book-shelves-bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+@media (max-width: 640px) {
+  .book-shelves-section {
+    padding: 2rem 0.75rem;
+    min-height: 300px;
+  }
+}
+
+.shelves-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 1200px;
+  position: relative;
+}
+
+/* Mobile: Stack vertically */
+@media (max-width: 768px) {
+  .shelves-container {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+.shelf {
+  width: 200px;
+  height: 600px;
+  background-color: var(--book-shelves-shelf-bg);
+  border: 5px solid var(--book-shelves-shelf-border);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding-top: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile: Smaller shelves */
+@media (max-width: 768px) {
+  .shelf {
+    width: 150px;
+    height: 400px;
+    margin-bottom: 20px;
+  }
+}
+
+.left-shelf {
+  margin-right: 50px;
+}
+
+.right-shelf {
+  margin-left: 50px;
+}
+
+/* Mobile: No margins */
+@media (max-width: 768px) {
+  .left-shelf, .right-shelf {
+    margin: 0;
+  }
+}
+
+.book-container {
+  margin-bottom: 10px;
+  animation: bookEnter 2s ease-in-out infinite alternate;
+}
+
+.book-image {
+  width: 80px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes bookEnter {
+  0% {
+    transform: translateX(-100px);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+}
+
+.left-shelf .book-container {
+  animation: bookEnterLeft 3s ease-in-out infinite;
+}
+
+.right-shelf .book-container {
+  animation: bookEnterRight 3s ease-in-out infinite;
+}
+
+@keyframes bookEnterLeft {
+  0% {
+    transform: translateX(-200px);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-200px);
+    opacity: 0;
+  }
+}
+
+@keyframes bookEnterRight {
+  0% {
+    transform: translateX(200px);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(200px);
+    opacity: 0;
+  }
+}
+
+.shelf-divider {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 40px;
+  text-align: center;
+  height: 600px; /* Match shelf height for vertical centering */
+}
+
+/* Mobile: Adjust divider */
+@media (max-width: 768px) {
+  .shelf-divider {
+    height: auto;
+    padding: 20px 20px;
+    order: -1; /* Place text above shelves on mobile */
+  }
+}
+
+.shelf-divider h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--book-shelves-text);
+  margin-bottom: 1rem;
+  line-height: 1.25;
+}
+
+@media (min-width: 480px) {
+  .shelf-divider h1 {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .shelf-divider h1 {
+    font-size: 3rem;
+  }
+}
+
+.shelf-divider h1 span {
+  display: block;
+}
+
+.shelf-divider h1 .highlight {
+  color: var(--book-shelves-highlight);
+}
+
+.shelf-divider p {
+  font-size: 1rem;
+  color: var(--book-shelves-text);
+  max-width: 48rem;
+  margin: 0 auto;
+  line-height: 1.625;
+}
+
+@media (min-width: 480px) {
+  .shelf-divider p {
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .shelf-divider p {
+    font-size: 1.25rem;
+  }
+}
+
+/* Animations similar to HeroSection */
+.fade-in-up {
+  animation: fadeInUp 1s ease-out forwards;
+  opacity: 0;
+}
+
+.delay-1 {
+  animation-delay: 0.2s;
+}
+
+.delay-2 {
+  animation-delay: 0.4s;
+}
+
+.slide-in-left {
+  animation: slideInLeft 1s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

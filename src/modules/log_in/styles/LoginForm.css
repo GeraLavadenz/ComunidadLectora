@@ -1,0 +1,94 @@
+.form {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+.label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.input {
+  width: 100%;
+  padding: 12px 13px;
+  border-radius: 10px;
+  border: 1px solid rgba(21,78,36,0.18);
+  background: color-mix(in srgb, var(--surface), black 0%);
+  color: var(--text);
+  outline: none;
+  box-shadow: var(--shadow-sm);
+  transition: border var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+.input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--ring);
+  transform: translateY(-1px);
+}
+
+.password-wrap {
+  position: relative;
+}
+.toggle-pass {
+  position: absolute;
+  right: 10px; top: 50%;
+  transform: translateY(-50%);
+  border: none; background: transparent; color: var(--muted);
+  cursor: pointer; font-size: 12px;
+}
+
+.row {
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.checkbox {
+  display: inline-flex; gap: 8px; align-items: center;
+  font-size: 13px; color: var(--muted);
+  cursor: pointer;
+}
+
+.btn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition), background var(--transition), color var(--transition);
+}
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary), black 12%));
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(43,191,89,0.3);
+}
+.btn-primary:hover { transform: translateY(-1px); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid rgba(21,78,36,0.20);
+}
+.btn-ghost:hover { background: rgba(21,78,36,0.06); }
+
+.divider {
+  display: grid; grid-auto-flow: column; align-items: center; gap: 10px;
+  color: var(--muted); font-size: 12px; margin: 8px 0;
+}
+.divider::before, .divider::after {
+  content: "";
+  height: 1px; background: rgba(21,78,36,0.18);
+}
+
+.error {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  color: #c0392b;
+  padding: 10px 12px; border-radius: 10px; font-size: 13px;
+}

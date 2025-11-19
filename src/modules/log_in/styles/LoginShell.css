@@ -1,0 +1,6 @@
+.login-shell {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 3vw, 40px);
+}
