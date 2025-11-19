@@ -10,7 +10,7 @@ import { type Book } from "./data/books";
 import useDebounced from "./hooks/useDebounced";
 import { normalize } from "./utils/filters";
 import { supabase } from "@/lib/supabase";
-import styles from "./styles/biblioteca.module.css";
+import "./styles/biblioteca.css";
 
 interface BibliotecaProps {
   genre?: string | null;
@@ -133,17 +133,17 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
   }, [debouncedAuthor, author, genres, tags]);
 
   return (
-    <main className={styles.container}>
-      <section className={styles.section}>
+    <main className="container">
+      <section className="section">
         {/* Título */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className={styles.title}
+          className="title"
         >
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Historias{displayGenre ? ` de ${displayGenre}` : ''}</h1>
-          <p className={styles.subtitle}>Busca, filtra por género, etiqueta o autor.</p>
+          <p className="subtitle">Busca, filtra por género, etiqueta o autor.</p>
         </motion.div>
 
         {/* Top bar: buscador + chips */}
@@ -158,7 +158,7 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
           }}
         />
 
-        <div className={styles.grid}>
+        <div className="grid">
           {/* Panel de filtros */}
           <FiltersPanel
             allGenres={catalog.genres}
@@ -186,7 +186,7 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className={styles.loading}
+                  className="loading"
                 >
                   <Loader2 className="size-4 animate-spin" />
                   <span className="text-sm">Cargando libros…</span>
@@ -202,7 +202,7 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className={styles.loading}
+                  className="loading"
                 >
                   <Loader2 className="size-4 animate-spin" />
                   <span className="text-sm">Aplicando filtros…</span>
@@ -217,7 +217,7 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 4 }}
-                  className={styles.empty}
+                  className="empty"
                 >
                   No se encontraron libros con los filtros actuales.
                 </motion.div>
@@ -225,7 +225,7 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
                 <motion.div
                   key="grid"
                   layout
-                  className={`grid gap-4 sm:grid-cols-2 xl:grid-cols-3`}
+                  className="books-grid"
                 >
                   {filtered.map((b) => (
                     <BookCard key={b.id} book={b} />
