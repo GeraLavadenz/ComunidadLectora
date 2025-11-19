@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import TopBar from "./components/TopBar";
 import FiltersPanel from "./components/FiltersPanel";
 import BookCard from "./components/BookCard";
-import { BOOKS, type Book } from "./data/books";
+import { BOOKS } from "./data/books";
 import useDebounced from "./hooks/useDebounced";
 import { normalize } from "./utils/filters";
 import styles from "./styles/biblioteca.module.css";

@@ -1,15 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
-import logoCompleto from '../../../public/logoCompleto.png';
-import minilogo from '../../../public/minilogo.png';
 import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { NavigationMenu, NavigationMenuList } from '../ui/navigation-menu';
 import {
-  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,

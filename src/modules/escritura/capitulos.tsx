@@ -378,7 +378,6 @@ export default function Capitulos({ storyId }: { storyId?: string }) {
 // -------------------------
 function assertEq(label, a, b) {
   const ok = JSON.stringify(a) === JSON.stringify(b);
-  // eslint-disable-next-line no-console
   console[ok ? "log" : "error"](`${ok ? "✅" : "❌"} ${label}:`, a, "===", b);
   return ok;
 }
