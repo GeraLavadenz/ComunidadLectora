@@ -1,17 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
-
-// =====================================================
-// 🎨 Paleta (puedes ajustar estos tokens a tu gusto/EMI)
-// =====================================================
-const palette = {
-  surface: "bg-neutral-800",
-  border: "border-neutral-700",
-  chip: "bg-neutral-800 hover:bg-neutral-700",
-  text: "text-neutral-100",
-  muted: "text-neutral-400",
-};
+import "./TopBar.css";
 
 interface TopBarProps {
   query: string;
@@ -28,14 +18,14 @@ export default function TopBar({
 }: TopBarProps) {
   const debouncedHandler = (e: React.ChangeEvent<HTMLInputElement>) => onQuery(e.target.value);
   return (
-    <div className="space-y-3">
-      <div className={`flex items-center gap-3 ${palette.surface} border ${palette.border} rounded-2xl px-4 py-2.5`}>
+    <div className="top-bar">
+      <div className="top-bar-search">
         <Search className="size-5" />
         <input
           defaultValue={query}
           onChange={debouncedHandler}
           placeholder="Buscar por título o autor..."
-          className={`bg-transparent outline-none w-full ${palette.text} placeholder:${palette.muted}`}
+          className="top-bar-input"
         />
       </div>
 
@@ -46,18 +36,20 @@ export default function TopBar({
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className="flex flex-wrap gap-2"
+            className="top-bar-chips"
           >
             {activeChips.map((c) => (
               <motion.button
                 key={`${c.type}:${c.value}`}
                 onClick={() => onClearChip(c)}
                 whileTap={{ scale: 0.95 }}
-                className={`px-3 py-1.5 rounded-full text-sm flex items-center gap-1.5 border ${palette.border} ${palette.chip}`}
+                className="top-bar-chip"
               >
-                <span className="capitalize">{c.type}:</span>
-                <span className="font-medium">{c.value}</span>
-                <X className="size-3.5" />
+                <div className="top-bar-chip-content">
+                  <span className="top-bar-chip-type">{c.type}:</span>
+                  <span className="top-bar-chip-value">{c.value}</span>
+                  <X className="size-3.5" />
+                </div>
               </motion.button>
             ))}
           </motion.div>
