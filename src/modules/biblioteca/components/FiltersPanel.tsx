@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Filter, ChevronDown } from "lucide-react";
 import Chip from "./Chip";
-import { supabase } from "../../../lib/supabaseClient"; // opcional, si cargas directo desde cliente
+import { supabase } from "../../../lib/supabaseClient"; // opcional si cargas directo desde cliente
 import "../styles/FiltersPanel.css";
 
-// Debounce util (simple)
+/** Simple debounce hook */
 function useDebounced<ValueT>(value: ValueT, delay = 300) {
   const [v, setV] = useState(value);
   useEffect(() => {
@@ -18,53 +18,46 @@ function useDebounced<ValueT>(value: ValueT, delay = 300) {
 type TagRow = { id: string; name: string; type: "genre" | "tag" | string };
 
 interface FiltersPanelProps {
-  // Si ya traes géneros/etiquetas desde el padre, pásalos en lugar de fetch interno
-  // allGenres/allTags aceptan arrays de objetos {id,name} o strings (compatibilidad).
   allGenres?: Array<{ id: string; name: string }>;
   allTags?: Array<{ id: string; name: string }>;
 
-  // selecciones (preferible: Sets de ids)
   selectedGenres: Set<string> | string[];
   selectedTags: Set<string> | string[];
 
-  // autor: texto del input (controlled)
   author: string;
 
-  // callbacks: ahora reciben id (string) para robustez
   onToggleGenre: (id: string) => void;
   onToggleTag: (id: string) => void;
   onAuthor: (s: string) => void;
 
-  // si se pasa, ocultar/mostrar sección de géneros
+  /** If a genre is fixed by URL, pass {id,name} to show it — hides full genres list */
   genreFromUrl?: { id: string; name: string } | null;
 
-  // flag: si prefieres que el panel haga fetch (default true)
+  /** If true, component will fetch genres/tags itself (default true) */
   fetchFromServer?: boolean;
 
-  // si usas una API en lugar de supabase client, pasa la ruta (opcional)
+  /** Optional API paths (service role) — if provided, component fetches from these endpoints */
   apiGenresPath?: string; // e.g. '/api/genres'
   apiTagsPath?: string;   // e.g. '/api/tags'
 }
 
-export default function FiltersPanel(props: FiltersPanelProps) {
-  const {
-    allGenres: allGenresProp,
-    allTags: allTagsProp,
-    selectedGenres,
-    selectedTags,
-    author,
-    onToggleGenre,
-    onToggleTag,
-    onAuthor,
-    genreFromUrl,
-    fetchFromServer = true,
-    apiGenresPath,
-    apiTagsPath,
-  } = props;
-
+export default function FiltersPanel({
+  allGenres: allGenresProp,
+  allTags: allTagsProp,
+  selectedGenres,
+  selectedTags,
+  author,
+  onToggleGenre,
+  onToggleTag,
+  onAuthor,
+  genreFromUrl,
+  fetchFromServer = true,
+  apiGenresPath,
+  apiTagsPath,
+}: FiltersPanelProps) {
   const [open, setOpen] = useState(true);
 
-  // internal state for fetched data
+  // fetched data + UI states
   const [fetchedGenres, setFetchedGenres] = useState<TagRow[] | null>(null);
   const [fetchedTags, setFetchedTags] = useState<TagRow[] | null>(null);
   const [loadingGenres, setLoadingGenres] = useState(false);
@@ -81,18 +74,23 @@ export default function FiltersPanel(props: FiltersPanelProps) {
     return selectedTags instanceof Set ? selectedTags : new Set(selectedTags ?? []);
   }, [selectedTags]);
 
-  // Debounced author input (so parent onAuthor can do network calls safely)
+  // debounce author before notifying parent
   const debouncedAuthor = useDebounced(author, 300);
   useEffect(() => {
-    // Communicate debounced value upward only (prevents spam)
     onAuthor(debouncedAuthor);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedAuthor]);
 
-  // Fetch helper: prefer API (service role) if provided, else supabase client
+  // Helper: get name from id (fallback to id)
+  function getNameById(id: string, list: { id: string; name: string }[] | null | undefined) {
+    if (!list || list.length === 0) return id;
+    const found = list.find((x) => x.id === id);
+    return found ? found.name : id;
+  }
+
+  // Fetch functions
   const fetchGenres = useCallback(async () => {
     if (allGenresProp && allGenresProp.length > 0) {
-      // if parent passed genres, don't fetch
       setFetchedGenres(allGenresProp.map((g) => ({ id: g.id, name: g.name, type: "genre" })));
       return;
     }
@@ -106,7 +104,6 @@ export default function FiltersPanel(props: FiltersPanelProps) {
         const json = await res.json();
         setFetchedGenres((json ?? []).map((r: any) => ({ id: r.id, name: r.name, type: "genre" })));
       } else {
-        // direct supabase client fetch (requires RLS/public policy)
         const { data, error } = await supabase
           .from("tags")
           .select("id, name, type")
@@ -163,7 +160,7 @@ export default function FiltersPanel(props: FiltersPanelProps) {
     fetchTags();
   }, [fetchFromServer, fetchGenres, fetchTags]);
 
-  // rendered lists (prefer props -> fetched -> empty)
+  // lists to render (prefer props > fetched)
   const genresList = useMemo(() => {
     if (allGenresProp && allGenresProp.length > 0)
       return allGenresProp.map((g) => ({ id: g.id, name: g.name, type: "genre" as const }));
@@ -176,7 +173,6 @@ export default function FiltersPanel(props: FiltersPanelProps) {
     return fetchedTags ?? [];
   }, [allTagsProp, fetchedTags]);
 
-  // handlers memoized
   const handleToggleGenre = useCallback((id: string) => onToggleGenre(id), [onToggleGenre]);
   const handleToggleTag = useCallback((id: string) => onToggleTag(id), [onToggleTag]);
 
@@ -220,7 +216,40 @@ export default function FiltersPanel(props: FiltersPanelProps) {
               />
             </div>
 
-            {/* Géneros */}
+            {/* Selected chips (show names, not IDs) */}
+            <div className="filters-selected">
+              {/* Géneros seleccionados */}
+              {Array.from(selectedGenresSet).length > 0 && (
+                <div className="filters-selected-group">
+                  <div className="filters-selected-title">Géneros seleccionados</div>
+                  <div className="filters-selected-chips">
+                    {Array.from(selectedGenresSet).map((id) => {
+                      const label = getNameById(id, genresList);
+                      return (
+                        <Chip key={id} label={label} active={true} onClick={() => handleToggleGenre(id)} />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Etiquetas seleccionadas */}
+              {Array.from(selectedTagsSet).length > 0 && (
+                <div className="filters-selected-group">
+                  <div className="filters-selected-title">Etiquetas seleccionadas</div>
+                  <div className="filters-selected-chips">
+                    {Array.from(selectedTagsSet).map((id) => {
+                      const label = getNameById(id, tagsList);
+                      return (
+                        <Chip key={id} label={label} active={true} onClick={() => handleToggleTag(id)} />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Géneros (lista completa, si no hay genreFromUrl) */}
             {!genreFromUrl ? (
               <div>
                 <div className="filters-panel-section-title">Géneros</div>
@@ -235,11 +264,7 @@ export default function FiltersPanel(props: FiltersPanelProps) {
                   <div className="filters-panel-chips" role="list" aria-label="Géneros">
                     {genresList.map((g) => (
                       <div role="listitem" key={g.id}>
-                        <Chip
-                          label={g.name}
-                          active={selectedGenresSet.has(g.id)}
-                          onClick={() => handleToggleGenre(g.id)}
-                        />
+                        <Chip label={g.name} active={selectedGenresSet.has(g.id)} onClick={() => handleToggleGenre(g.id)} />
                       </div>
                     ))}
                   </div>
@@ -249,7 +274,7 @@ export default function FiltersPanel(props: FiltersPanelProps) {
               <div>
                 <div className="filters-panel-section-title">Género</div>
                 <div className="filters-panel-chips">
-                  <Chip label={genreFromUrl.name} active={true} onClick={() => { /* opcional quitar */ }} />
+                  <Chip label={genreFromUrl.name} active={true} onClick={() => { /* opcional: permitir quitar */ }} />
                 </div>
               </div>
             )}
