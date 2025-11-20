@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import styles from './styles/GenreMenu.module.css';
-import { supabase } from '@/lib/supabaseClient';
+import supabase from '@/lib/supabaseClient';
 
 type GenreItem = {
   id: string;

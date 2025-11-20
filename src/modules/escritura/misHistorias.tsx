@@ -1,129 +1,167 @@
-// MisHistorias.tsx
-/*'use client';
+// components/MisHistorias.tsx
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
-import styles from './styles/misHistorias.module.css';
 import { motion } from 'framer-motion';
 import { Edit, Eye, Trash, Plus } from 'lucide-react';
+import supabase from '@/lib/supabaseClient';
+import styles from './styles/misHistorias.module.css'; // ajusta ruta si hace falta
 
 type StoryRow = {
   id: string;
   title: string;
-  description?: string;
+  description?: string | null;
   author_id: string;
   created_at: string;
-  updated_at?: string;
-  cover_url?: string | null;
-  // más campos según tu schema...
+  updated_at?: string | null;
 };
 
 export default function MisHistorias() {
   const router = useRouter();
-  const supabase = createBrowserSupabaseClient();
   const [stories, setStories] = useState<StoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false); // espera inicialización auth
   const [showForm, setShowForm] = useState(false);
   const [newStory, setNewStory] = useState({ title: '', description: '' });
 
-  // Carga sólo historias del usuario autenticado
+  // 1) Escuchar estado auth (incluye INITIAL_SESSION)
   useEffect(() => {
     let mounted = true;
-    async function load() {
-      setLoading(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, _payload) => {
+      console.log('[AUTH EVENT MisHistorias]', _event, _payload);
+      if (!mounted) return;
+      // Si llegó any event, intentamos marcar authReady (seguimos comprobando getSession)
+      setAuthReady(true);
+    });
 
-      if (!user) {
-        // si no hay user -> redirigir a login o mostrar mensaje
-        setStories([]);
-        setLoading(false);
-        return;
+    // Intentar leer sesión inicial (puede ser sincrónica en storage)
+    (async () => {
+      try {
+        const s = await supabase.auth.getSession();
+        console.log('MisHistorias initial getSession =>', s);
+        if (s?.data?.session) setAuthReady(true);
+        else setAuthReady(false);
+      } catch (e) {
+        console.error('getSession error', e);
+        setAuthReady(false);
       }
+    })();
 
-      const userId = user.id;
-      const { data, error } = await supabase
-        .from<StoryRow>('stories')
-        .select('*')
-        .eq('author_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error cargando historias:', error);
-      } else if (mounted) {
-        setStories(data || []);
-      }
-      setLoading(false);
-    }
-
-    load();
-
-    // subscribir a cambios opcional (realtime)
-    // const channel = supabase.channel('public:stories')
-    //   .on('postgres_changes', { event: '*', schema: 'public', table: 'stories' }, payload => { load(); })
-    //   .subscribe();
-    // return () => { mounted = false; channel.unsubscribe(); };
-    return () => { mounted = false; };
-  }, [supabase]);
-
-  const handleCreate = async () => {
-    // crear story en la tabla stories con author_id => Supabase lo guarda
-    setLoading(true);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      alert('Necesitas iniciar sesión para crear una historia');
-      setLoading(false);
-      return;
-    }
-
-    const insert = {
-      title: newStory.title || 'Historia sin título',
-      description: newStory.description || null,
-      author_id: user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    return () => {
+      mounted = false;
+      sub?.subscription?.unsubscribe?.();
     };
+  }, []);
 
-    const { data, error } = await supabase.from('stories').insert([insert]).select().single();
+  // 2) Cuando authReady -> cargar historias del user
+  useEffect(() => {
+    let mounted = true;
 
-    if (error) {
-      console.error('Error creando story:', error);
-      alert('Error al crear historia');
+    if (!authReady) {
       setLoading(false);
-      return;
+      return () => { mounted = false; };
     }
 
-    // actualizar UI (optimista)
-    setStories((prev) => [data as StoryRow, ...prev]);
-    setNewStory({ title: '', description: '' });
-    setShowForm(false);
-    setLoading(false);
+    (async () => {
+      setLoading(true);
+      try {
+        const s = await supabase.auth.getSession();
+        const user = s?.data?.session?.user;
+        if (!user) {
+          setStories([]);
+          setLoading(false);
+          return;
+        }
 
-    // redirigir a la edición de capítulos (ajusta ruta según tu app)
-    router.push(`/escritura/capitulos/${data.id}`);
+        const { data, error } = await supabase
+          .from<StoryRow>('stories')
+          .select('*')
+          .eq('author_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error cargando historias:', error);
+          setStories([]);
+        } else if (mounted) {
+          setStories(data ?? []);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [authReady]);
+
+  // Crear historia
+  const handleCreate = async () => {
+    setLoading(true);
+    try {
+      const s = await supabase.auth.getSession();
+      const user = s?.data?.session?.user;
+      if (!user) {
+        setLoading(false);
+        return alert('Necesitas iniciar sesión para crear una historia.');
+      }
+      if (!newStory.title.trim()) {
+        setLoading(false);
+        return alert('Ponle un título a la historia.');
+      }
+
+      const insert = {
+        title: newStory.title.trim(),
+        description: newStory.description?.trim() ?? null,
+        author_id: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase.from('stories').insert([insert]).select().single();
+      if (error) throw error;
+
+      setStories((prev) => [data as StoryRow, ...prev]);
+      setNewStory({ title: '', description: '' });
+      setShowForm(false);
+      router.push(`/escritura/capitulos/${(data as any).id}`);
+    } catch (err) {
+      console.error('Error creando historia:', err);
+      alert('No se pudo crear la historia.');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Eliminar historia
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar esta historia? Esta acción no se puede deshacer.')) return;
-    // opcional: verificar autor en backend (policy row-level recommended)
-    const { error } = await supabase.from('stories').delete().eq('id', id).throwOnError();
-    if (error) {
-      console.error('Error eliminando story:', error);
-      alert('No se pudo eliminar');
-      return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('stories').delete().eq('id', id);
+      if (error) throw error;
+      setStories((s) => s.filter((st) => st.id !== id));
+    } catch (err) {
+      console.error('Error al eliminar:', err);
+      alert('No se pudo eliminar la historia.');
+    } finally {
+      setLoading(false);
     }
-    setStories((s) => s.filter((st) => st.id !== id));
   };
 
-  const handleEdit = (id: string) => {
-    router.push(`/escritura/capitulos/${id}`);
-  };
+  const handleEdit = (id: string) => router.push(`/escritura/capitulos/${id}`);
+
+  if (!authReady) {
+    return (
+      <main className={styles.container}>
+        <h1 className={styles.title}>Mis Historias</h1>
+        <div className={styles.noSession}>
+          Comprobando autenticación... si hiciste login hace poco espera 1–2s o recarga la página.
+        </div>
+      </main>
+    );
+  }
 
   if (loading) return <div className={styles.container}>Cargando...</div>;
 
@@ -173,55 +211,5 @@ export default function MisHistorias() {
         ))}
       </section>
     </main>
-  );
-}
-*/
-'use client';
-import React, { useEffect, useState } from 'react';
-import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
-
-export default function DebugAuth() {
-  const supabase = createBrowserSupabaseClient();
-  const [status, setStatus] = useState({ loading: true, user: null as any, session: null as any, err: null as any });
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        // 1) Session actual
-        const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
-        console.log('getSession =>', sessionData, sessionErr);
-
-        // 2) Usuario
-        const { data: userData, error: userErr } = await supabase.auth.getUser();
-        console.log('getUser =>', userData, userErr);
-
-        // 3) Escuchar cambios de auth (login / logout / refresh)
-        const { data: sub } = supabase.auth.onAuthStateChange((event, payload) => {
-          console.log('[AUTH EVENT]', event, payload);
-          // opcional: forzar refetch de sesión/usuario
-          supabase.auth.getSession().then(r => console.log('session after event =>', r));
-        });
-
-        if (mounted) setStatus({ loading: false, user: userData?.user ?? null, session: sessionData?.session ?? null, err: sessionErr || userErr });
-        return () => sub?.subscription?.unsubscribe?.();
-      } catch (err) {
-        if (mounted) setStatus(s => ({ ...s, loading: false, err }));
-      }
-    })();
-
-    return () => { mounted = false; };
-  }, [supabase]);
-
-  if (status.loading) return <div>Comprobando sesión...</div>;
-
-  return (
-    <div style={{ padding: 12, border: '1px solid #666', borderRadius: 8 }}>
-      <h4>Debug Auth</h4>
-      <div><strong>Usuario:</strong> {status.user ? `${status.user.email} (${status.user.id})` : '— ninguno —'}</div>
-      <div><strong>Session:</strong> {status.session ? 'OK' : '— no hay sesión —'}</div>
-      <div><strong>Error:</strong> {status.err ? JSON.stringify(status.err) : 'ninguno'}</div>
-      <p style={{marginTop:8,fontSize:12,color:'#bbb'}}>Mira la consola para ver los eventos onAuthStateChange y getSession/getUser.</p>
-    </div>
   );
 }

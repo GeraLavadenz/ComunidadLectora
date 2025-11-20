@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Filter, ChevronDown } from "lucide-react";
 import Chip from "./Chip";
-import { supabase } from "../../../lib/supabaseClient"; // opcional si cargas directo desde cliente
+import supabase from "../../../lib/supabaseClient"; // opcional si cargas directo desde cliente
 import "../styles/FiltersPanel.css";
 
 /** Simple debounce hook */
