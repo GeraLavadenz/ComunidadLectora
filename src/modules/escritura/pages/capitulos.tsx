@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import supabase from '@/lib/supabaseClient';
 import { Plus } from 'lucide-react';
-import "./styles/capitulos.css";
+import "../styles/capitulos.css";
 
 /**
  * Capitulos - componente completo corregido
