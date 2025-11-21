@@ -1,6 +1,6 @@
 import Header from "@/components/header/header";
 import Footer from "@/components/footer/footer";
-import EditarCapitulo from "../../../../../../modules/escritura/editarCapitulo";
+import EditarCapitulo from "../../../../../../modules/escritura/pages/editarCapitulo";
 
 export default async function Page({ params }: { params: Promise<{ id: string; chapterId: string }> }) {
   const { id, chapterId } = await params;

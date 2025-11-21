@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import "./styles/capitulos.css";
 import "./styles/editarCapitulo.css";
-import { stories } from "./storiesData";
+import { stories } from "../storiesData";
 
 // Función básica de corrección de IA (demo)
 const correctWithAI = (text: string): string => {
