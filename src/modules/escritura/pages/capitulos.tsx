@@ -1,211 +1,191 @@
+// src/modules/escritura/pages/capitulos.tsx
 'use client';
 
-import React, { useMemo, useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import supabase from '@/lib/supabaseClient';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
-import "../styles/capitulos.css";
+import { useRouter } from 'next/navigation';
+import supabase from '@/lib/supabaseClient';
+import '../styles/capitulos.css';
 
-/**
- * Capitulos - componente completo corregido
- * - Usa `chapter_number` consistentemente (insert/select/mapping)
- * - Más logs y alerts para debug visible
- * - ChipEditor con autocompletado/creación en BD incluido
- * - Two-step load: stories list -> story + chapters
- */
-
-// ---------- Helpers ----------
-function normalizeStr(s) { return (s || "").toString().toLowerCase(); }
-function addChip(list, value) {
-  const v = (value || "").trim();
-  if (!v) return list || [];
-  const exists = (list || []).some((x) => x.toLowerCase() === v.toLowerCase());
-  return exists ? list : [...(list || []), v];
-}
-function removeChip(list, value) {
-  const v = (value || "").toLowerCase();
-  return (list || []).filter((x) => x.toLowerCase() !== v);
+// -------------------------
+// util helpers
+// -------------------------
+function normalizeStr(s: any) {
+  return (s || '').toString().toLowerCase();
 }
 
-function filterChapters(story, query, onlyPublished, sortBy) {
-  const q = (query || "").trim().toLowerCase();
-  let arr = (story?.chapters || []).filter((c) => {
-    const num = c.number ?? 0;
-    const isPub = (c.isPublished !== undefined) ? c.isPublished : Boolean(c.is_published);
+function filterChapters(story: any, query: string, onlyPublished: boolean, sortBy: string) {
+  const q = (query || '').trim().toLowerCase();
+  let arr = (story?.chapters || []).filter((c: any) => {
     const hit =
       normalizeStr(c.title).includes(q) ||
-      normalizeStr(c.summary || "").includes(q) ||
-      (q !== "" && String(num) === q);
-    return onlyPublished ? hit && isPub : hit;
+      normalizeStr(c.summary).includes(q) ||
+      (q !== '' && String(c.number) === q);
+    return onlyPublished ? hit && c.isPublished : hit;
   });
 
   switch (sortBy) {
-    case "num-desc":
-      arr = [...arr].sort((a, b) => (b.number ?? 0) - (a.number ?? 0));
+    case 'num-desc':
+      arr = [...arr].sort((a, b) => b.number - a.number);
       break;
-    case "title":
+    case 'title':
       arr = [...arr].sort((a, b) => a.title.localeCompare(b.title));
       break;
     default:
-      arr = [...arr].sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+      arr = [...arr].sort((a, b) => a.number - b.number);
   }
   return arr;
 }
 
-// ---------- DB mapping ----------
-function mapStoryRowToLocal(row) {
+function addChip(list: string[] | undefined, value: string) {
+  const v = (value || '').trim();
+  if (!v) return list || [];
+  const exists = (list || []).some((x) => x.toLowerCase() === v.toLowerCase());
+  return exists ? list : [...(list || []), v];
+}
+function removeChip(list: string[] | undefined, value: string) {
+  const v = (value || '').toLowerCase();
+  return (list || []).filter((x) => x.toLowerCase() !== v);
+}
+
+// -------------------------
+// DB mapper
+// -------------------------
+function mapStoryRowToLocal(row: any) {
   return {
     id: row.id,
     title: row.title,
     author: row.author_name ?? row.author_id,
     description: row.description ?? '',
-    genres: row.genres ?? [],
-    tags: row.tags ?? [],
+    genres: row._genres_names ?? [], // opcional si quieres precargar nombres
+    tags: row._tags_names ?? [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    chapters: (row.chapters || []).map((c) => ({
+    chapters: (row.chapters || []).map((c: any) => ({
       id: c.id,
-      number: c.chapter_number ?? c.number ?? 0, // use chapter_number
-      chapter_number: c.chapter_number,
+      number: c.chapter_number ?? c.number ?? 0, // usa chapter_number si existe
       title: c.title,
-      summary: c.summary ?? (c.content ? String(c.content).slice(0, 200) : ''),
+      summary: c.summary,
       content: c.content,
-      isPublished: c.is_published !== undefined ? Boolean(c.is_published) : Boolean(c.isPublished),
-      is_published: c.is_published,
-      publishedAt: c.published_at ?? c.publishedAt,
-      published_at: c.published_at
-    }))
+      isPublished: Boolean(c.is_published),
+      publishedAt: c.published_at,
+    })),
   };
 }
 
-// ---------- ChipEditor (autocomp + create) ----------
-function ChipEditor({
-  items = [],
-  placeholder,
-  onAdd,
-  onRemove,
-  badgeClass = "",
-  ariaLabel = "",
-  suggestionType = "tag" // 'tag' or 'genre'
-}) {
-  const [value, setValue] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [loadingSug, setLoadingSug] = useState(false);
-  const [highlight, setHighlight] = useState(-1);
-  const debRef = useRef(null);
-  const containerRef = useRef(null);
+// -------------------------
+// funciones para tags/genres
+// -------------------------
+async function ensureTag(name: string, type: 'genre' | 'tag') {
+  // devuelve id del tag (existe o se crea)
+  const tName = name.trim();
+  if (!tName) throw new Error('Nombre vacío');
 
-  async function fetchSuggestions(q) {
-    if (!q || q.trim().length === 0) { setSuggestions([]); return; }
-    setLoadingSug(true);
-    try {
-      const { data, error } = await supabase
-        .from('tags')
-        .select('name')
-        .ilike('name', `%${q}%`)
-        .eq('type', suggestionType)
-        .limit(10);
-      if (error) throw error;
-      setSuggestions((data || []).map(x => x.name));
-      setHighlight(-1);
-    } catch (err) {
-      console.error('fetchSuggestions', err);
-      setSuggestions([]);
-    } finally { setLoadingSug(false); }
+  // 1) buscar
+  const { data: found, error: selErr } = await supabase
+    .from('tags')
+    .select('id, name')
+    .ilike('name', tName)
+    .eq('type', type)
+    .limit(1);
+
+  if (selErr) throw selErr;
+  if (found && found.length) return found[0].id;
+
+  // 2) crear
+  const { data: ins, error: insErr } = await supabase
+    .from('tags')
+    .insert([{ name: tName, type }])
+    .select()
+    .single();
+
+  if (insErr) throw insErr;
+  return ins.id;
+}
+
+async function linkStoryTag(storyId: string, tagId: string) {
+  // crear la fila en story_tags si no existe
+  // comprobar existencia:
+  const { data: existing, error: selErr } = await supabase
+    .from('story_tags')
+    .select('story_id, tag_id')
+    .eq('story_id', storyId)
+    .eq('tag_id', tagId)
+    .limit(1);
+
+  if (selErr) throw selErr;
+  if (existing && existing.length) return; // ya linked
+
+  const { error: insErr } = await supabase
+    .from('story_tags')
+    .insert([{ story_id: storyId, tag_id: tagId }]);
+
+  if (insErr) throw insErr;
+}
+
+// suggestions
+async function fetchSuggestions(q: string, type: 'genre' | 'tag') {
+  if (!q || q.trim() === '') return [];
+  const { data, error } = await supabase
+    .from('tags')
+    .select('id, name')
+    .ilike('name', `${q}%`)
+    .eq('type', type)
+    .limit(10);
+
+  if (error) {
+    console.error('suggestions error', error);
+    return [];
   }
+  return data || [];
+}
 
-  async function ensureTagExists(name) {
-    const n = (name || "").trim();
-    if (!n) return null;
-    try {
-      const { data: found, error: fErr } = await supabase
-        .from('tags')
-        .select('id,name')
-        .ilike('name', n)
-        .eq('type', suggestionType)
-        .limit(1)
-        .maybeSingle();
-      if (fErr) throw fErr;
-      if (found) return found.name;
-
-      const { data: ins, error: insErr } = await supabase
-        .from('tags')
-        .insert([{ name: n, type: suggestionType }])
-        .select()
-        .maybeSingle();
-      if (insErr) {
-        // race: try read again
-        const { data: retry } = await supabase
-          .from('tags')
-          .select('id,name')
-          .ilike('name', n)
-          .eq('type', suggestionType)
-          .limit(1)
-          .maybeSingle();
-        return retry?.name ?? n;
-      }
-      return ins?.name ?? n;
-    } catch (err) {
-      console.error('ensureTagExists', err);
-      return name;
-    }
-  }
-
-  function commitValue(v) {
-    if (!v || !v.trim()) return;
-    (async () => {
-      const name = await ensureTagExists(v.trim());
-      if (name) onAdd(name);
-      setValue("");
-      setSuggestions([]);
-      setShowSuggestions(false);
-      setHighlight(-1);
-    })();
-  }
-
-  function onKeyDown(e) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (highlight >= 0 && suggestions[highlight]) commitValue(suggestions[highlight]);
-      else commitValue(value);
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setShowSuggestions(true);
-      setHighlight(h => Math.min(h + 1, suggestions.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlight(h => Math.max(h - 1, 0));
-    } else if (e.key === "Escape") {
-      setShowSuggestions(false);
-      setHighlight(-1);
-    }
-  }
-
-  function onChange(e) {
-    const v = e.target.value;
-    setValue(v);
-    setShowSuggestions(true);
-    if (debRef.current) clearTimeout(debRef.current);
-    debRef.current = setTimeout(() => fetchSuggestions(v), 180);
-  }
-
-  function handlePickSuggestion(name) { commitValue(name); }
+// -------------------------
+// ChipEditor con sugerencias simples
+// -------------------------
+function ChipEditor({ items = [], placeholder, onAdd, onRemove, badgeClass = '', ariaLabel = '', type = 'tag' as 'tag' | 'genre' }) {
+  const [value, setValue] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    function onDocClick(e) {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(e.target)) { setShowSuggestions(false); setHighlight(-1); }
+    let mounted = true;
+    if (!value.trim()) {
+      setSuggestions([]);
+      return;
     }
-    document.addEventListener('click', onDocClick);
-    return () => document.removeEventListener('click', onDocClick);
+    (async () => {
+      const s = await fetchSuggestions(value, type);
+      if (!mounted) return;
+      setSuggestions(s);
+    })();
+    return () => { mounted = false; };
+  }, [value, type]);
+
+  // click outside hide suggestions
+  useEffect(() => {
+    function onDoc(e: any) {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target)) setSuggestions([]);
+    }
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
+  async function commitValue(v: string) {
+    const vv = v.trim();
+    if (!vv) return;
+    setValue('');
+    setSuggestions([]);
+    await onAdd(vv);
+  }
+
   return (
-    <div aria-label={ariaLabel} style={{ position: 'relative' }} ref={containerRef}>
+    <div aria-label={ariaLabel} ref={ref} style={{ position: 'relative' }}>
       <div className="chips">
-        {items.map((it) => (
+        {items.map((it: string) => (
           <span key={it} className={`chip ${badgeClass}`}>
             {it}
             <button className="chipRemove" title={`Eliminar ${it}`} onClick={() => onRemove(it)} aria-label={`Eliminar ${it}`}>×</button>
@@ -217,49 +197,48 @@ function ChipEditor({
         className="chipInput"
         placeholder={placeholder}
         value={value}
-        onChange={onChange}
-        onKeyDown={onKeyDown}
-        onFocus={() => { if (value) fetchSuggestions(value); setShowSuggestions(true); }}
-        aria-autocomplete="list"
-        aria-expanded={showSuggestions}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={async (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            await commitValue(value);
+          } else if (e.key === 'ArrowDown' && suggestions.length) {
+            // opcional: seleccionar primera suggestion
+            await commitValue(suggestions[0].name);
+          }
+        }}
       />
 
-      {showSuggestions && (loadingSug || suggestions.length > 0 || value.trim()) && (
-        <div className="chip-suggestions" role="listbox" style={{
-          position: 'absolute', zIndex: 50, background: 'var(--card-bg,#0b0b0b)',
-          border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, marginTop: 6,
-          width: '100%', maxHeight: 220, overflowY: 'auto', padding: '6px'
-        }}>
-          {loadingSug && <div className="suggestionItem">Buscando...</div>}
-          {!loadingSug && suggestions.length === 0 && value.trim() && (<div className="suggestionItem suggestion-empty">Crear «{value.trim()}»</div>)}
-          {!loadingSug && suggestions.map((s, idx) => (
-            <button key={s} type="button" className={`suggestionItem ${highlight === idx ? 'highlight' : ''}`}
-              onMouseDown={(ev) => { ev.preventDefault(); handlePickSuggestion(s); }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '6px 8px', background: highlight === idx ? 'rgba(255,255,255,0.03)' : 'transparent', border: 'none', cursor: 'pointer' }}
+      {suggestions.length > 0 && (
+        <div className="suggestionsDropdown" role="listbox">
+          {suggestions.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className="suggestionItem"
+              onMouseDown={async (ev) => {
+                // onMouseDown para evitar perder foco antes del commit
+                ev.preventDefault();
+                await commitValue(s.name);
+              }}
             >
-              {s}
+              {s.name}
             </button>
           ))}
-          {!loadingSug && (!suggestions || suggestions.length === 0) && value.trim() && (
-            <button type="button" onMouseDown={(ev) => { ev.preventDefault(); handlePickSuggestion(value.trim()); }}
-              className="suggestionItem create-new" style={{ display: 'block', width: '100%', textAlign: 'left', padding: '6px 8px', border: 'none', background: 'transparent', cursor: 'pointer' }}>
-              Crear «{value.trim()}»
-            </button>
-          )}
         </div>
       )}
     </div>
   );
 }
 
-// ---------- StoryDetail ----------
-function StoryDetail({ story, refreshStory }) {
+// -------------------------
+// StoryDetail (local editing + crear cap)
+// -------------------------
+function StoryDetail({ story, refreshStory }: { story: any; refreshStory: () => Promise<void> }) {
   const [local, setLocal] = useState(() => ({ ...story }));
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [onlyPublished, setOnlyPublished] = useState(false);
-  const [sortBy, setSortBy] = useState("num-asc");
-  const [showForm, setShowForm] = useState(false);
-  const [newChapter, setNewChapter] = useState({ title: '', summary: '', content: '', isPublished: false });
+  const [sortBy, setSortBy] = useState('num-asc');
   const [savingGenres, setSavingGenres] = useState(false);
   const [savingTags, setSavingTags] = useState(false);
 
@@ -267,105 +246,52 @@ function StoryDetail({ story, refreshStory }) {
 
   const stats = useMemo(() => {
     const total = local?.chapters?.length || 0;
-    const published = (local?.chapters || []).filter((c) => c.isPublished || c.is_published).length;
+    const published = (local?.chapters || []).filter((c: any) => c.isPublished).length;
     const pct = total ? Math.round((published / total) * 100) : 0;
     return { total, published, pct };
   }, [local]);
 
   const filtered = useMemo(() => filterChapters(local, query, onlyPublished, sortBy), [local, query, onlyPublished, sortBy]);
 
-  async function persistStoryFields(updates) {
+  // cuando el usuario añade un genre -> ensureTag + linkStoryTag
+  async function handleAddGenre(val: string) {
+    setSavingGenres(true);
     try {
-      const payload = { ...updates, updated_at: new Date().toISOString() };
-      const { data, error } = await supabase
-        .from('stories')
-        .update(payload)
-        .eq('id', local.id)
-        .select()
-        .maybeSingle();
-      if (error) throw error;
-      if (data) {
-        const mapped = mapStoryRowToLocal({ ...data, chapters: local.chapters });
-        setLocal(mapped);
-        if (typeof refreshStory === 'function') refreshStory();
-      }
+      const tagId = await ensureTag(val, 'genre');
+      await linkStoryTag(local.id, tagId);
+      // actualizar nombres locales (no hay relación directa en esta consulta minimal)
+      setLocal((s: any) => ({ ...s, genres: addChip(s.genres, val) }));
+      if (refreshStory) await refreshStory();
     } catch (err) {
-      console.error('Error persisting story fields', err);
-      alert('No se pudo actualizar la historia (ver consola).');
+      console.error('Error guardando género', err);
+      alert('No se pudo guardar el género. Revisa la consola.');
+    } finally {
+      setSavingGenres(false);
     }
   }
-
-  function handleAddTag(val) {
-    const updated = addChip(local.tags, val);
-    setLocal((s) => ({ ...s, tags: updated, updatedAt: new Date().toISOString() }));
-    setSavingTags(true);
-    persistStoryFields({ tags: updated }).finally(() => setSavingTags(false));
-  }
-  function handleRemoveTag(val) {
-    const updated = removeChip(local.tags, val);
-    setLocal((s) => ({ ...s, tags: updated, updatedAt: new Date().toISOString() }));
-    setSavingTags(true);
-    persistStoryFields({ tags: updated }).finally(() => setSavingTags(false));
-  }
-  function handleAddGenre(val) {
-    const updated = addChip(local.genres, val);
-    setLocal((s) => ({ ...s, genres: updated, updatedAt: new Date().toISOString() }));
-    setSavingGenres(true);
-    persistStoryFields({ genres: updated }).finally(() => setSavingGenres(false));
-  }
-  function handleRemoveGenre(val) {
-    const updated = removeChip(local.genres, val);
-    setLocal((s) => ({ ...s, genres: updated, updatedAt: new Date().toISOString() }));
-    setSavingGenres(true);
-    persistStoryFields({ genres: updated }).finally(() => setSavingGenres(false));
+  async function handleRemoveGenre(val: string) {
+    // aquí sólo quitamos visualmente; si quieres borrar relación en BD hay que eliminar story_tags
+    setLocal((s: any) => ({ ...s, genres: removeChip(s.genres, val) }));
+    // opcional: eliminar relation en BD (no implementado para no borrar tags globales)
   }
 
-  const handleCreateChapter = async () => {
-    const nextNumber = (local.chapters || []).reduce((m, c) => Math.max(m, Number(c.number ?? 0)), 0) + 1;
-    if (!newChapter.title.trim()) return alert('El capítulo necesita título.');
-    const insert = {
-      story_id: local.id,
-      chapter_number: nextNumber,              // <-- CORREGIDO: chapter_number
-      title: newChapter.title.trim(),
-      summary: newChapter.summary || null,
-      content: newChapter.content || null,
-      is_published: newChapter.isPublished || false,
-      published_at: newChapter.isPublished ? new Date().toISOString() : null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+  async function handleAddTag(val: string) {
+    setSavingTags(true);
     try {
-      console.log('Insert chapter payload:', insert);
-      const { data, error } = await supabase.from('chapters').insert([insert]).select().single();
-      if (error) {
-        console.error('Insert error:', error);
-        alert('Error al crear capítulo: ' + (error.message || JSON.stringify(error)));
-        return;
-      }
-      // map returned row (usar chapter_number que devuelve la BD)
-      const newCh = {
-        id: data.id,
-        number: data.chapter_number ?? data.number,
-        chapter_number: data.chapter_number,
-        title: data.title,
-        summary: data.summary,
-        content: data.content,
-        isPublished: Boolean(data.is_published),
-        is_published: data.is_published,
-        publishedAt: data.published_at,
-        published_at: data.published_at
-      };
-      setLocal((s) => ({ ...s, chapters: [...(s.chapters || []), newCh], updatedAt: new Date().toISOString() }));
-      setNewChapter({ title: '', summary: '', content: '', isPublished: false });
-      setShowForm(false);
-      if (typeof refreshStory === 'function') refreshStory();
-      // opcional: redirigir al editor del capítulo recién creado si quieres
-      // router.push(`/escritura/capitulos/${local.id}/${newCh.id}/editar`);
+      const tagId = await ensureTag(val, 'tag');
+      await linkStoryTag(local.id, tagId);
+      setLocal((s: any) => ({ ...s, tags: addChip(s.tags, val) }));
+      if (refreshStory) await refreshStory();
     } catch (err) {
-      console.error('Error creando capítulo', err);
-      alert('No se pudo crear el capítulo (ver consola).');
+      console.error('Error guardando etiqueta', err);
+      alert('No se pudo guardar la etiqueta. Revisa la consola.');
+    } finally {
+      setSavingTags(false);
     }
-  };
+  }
+  function handleRemoveTag(val: string) {
+    setLocal((s: any) => ({ ...s, tags: removeChip(s.tags, val) }));
+  }
 
   return (
     <main className="page">
@@ -375,8 +301,8 @@ function StoryDetail({ story, refreshStory }) {
           <h1 className="title">{local.title}</h1>
           <p className="subtitle">por <strong>{local.author}</strong></p>
           <div className="badges" aria-label="Géneros y etiquetas">
-            {(local.genres || []).map((g) => <span key={g} className="badgeGenre">{g}</span>)}
-            {(local.tags || []).map((t) => <span key={t} className="badgeTag">#{t}</span>)}
+            {(local.genres || []).map((g: string) => <span key={g} className="badgeGenre">{g}</span>)}
+            {(local.tags || []).map((t: string) => <span key={t} className="badgeTag">#{t}</span>)}
           </div>
         </div>
       </header>
@@ -393,15 +319,29 @@ function StoryDetail({ story, refreshStory }) {
 
           <div className="editRow">
             <h3 className="editTitle">Géneros {savingGenres ? '(guardando...)' : ''}</h3>
-            <ChipEditor items={local.genres} placeholder="Añadir género y Enter" onAdd={handleAddGenre} onRemove={handleRemoveGenre} badgeClass="genreChip" ariaLabel="Editor de géneros" suggestionType="genre" />
+            <ChipEditor
+              items={local.genres}
+              placeholder="Añadir género y Enter"
+              onAdd={handleAddGenre}
+              onRemove={handleRemoveGenre}
+              badgeClass="genreChip"
+              ariaLabel="Editor de géneros"
+              type="genre"
+            />
           </div>
 
           <div className="editRow">
             <h3 className="editTitle">Etiquetas {savingTags ? '(guardando...)' : ''}</h3>
-            <ChipEditor items={local.tags} placeholder="Añadir etiqueta y Enter" onAdd={handleAddTag} onRemove={handleRemoveTag} badgeClass="tagChip" ariaLabel="Editor de etiquetas" suggestionType="tag" />
+            <ChipEditor
+              items={local.tags}
+              placeholder="Añadir etiqueta y Enter"
+              onAdd={handleAddTag}
+              onRemove={handleRemoveTag}
+              badgeClass="tagChip"
+              ariaLabel="Editor de etiquetas"
+              type="tag"
+            />
           </div>
-
-          <p className="note">Puedes modificar <strong>géneros</strong> y <strong>etiquetas</strong>. Los cambios se guardan en la base de datos.</p>
         </article>
 
         <article className="card">
@@ -427,39 +367,13 @@ function StoryDetail({ story, refreshStory }) {
           <option value="num-desc">Número ↓</option>
           <option value="title">Título A–Z</option>
         </select>
-        <button className="btn create" onClick={() => setShowForm(!showForm)}><Plus /> Nuevo Capítulo</button>
+
+        {/* El botón NO abre formulario inline: redirige a la pantalla de edición */}
+        <CreateChapterButton storyId={local.id} />
       </section>
 
-      {showForm && (
-        <motion.div className="formContainer" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-          <h3>Crear Nuevo Capítulo</h3>
-          <div className="formGroup">
-            <label>Título:</label>
-            <input type="text" value={newChapter.title} onChange={(e) => setNewChapter({ ...newChapter, title: e.target.value })} placeholder="Ingresa el título del capítulo" />
-          </div>
-          <div className="formGroup">
-            <label>Resumen:</label>
-            <textarea value={newChapter.summary} onChange={(e) => setNewChapter({ ...newChapter, summary: e.target.value })} placeholder="Describe brevemente el capítulo" rows={3} />
-          </div>
-          <div className="formGroup">
-            <label>Contenido:</label>
-            <textarea value={newChapter.content} onChange={(e) => setNewChapter({ ...newChapter, content: e.target.value })} placeholder="Escribe el contenido del capítulo aquí..." rows={10} />
-          </div>
-          <div className="formGroup">
-            <label>
-              <input type="checkbox" checked={newChapter.isPublished} onChange={(e) => setNewChapter({ ...newChapter, isPublished: e.target.checked })} />
-              Publicar inmediatamente
-            </label>
-          </div>
-          <div className="formActions">
-            <button className="btn save" onClick={handleCreateChapter}>Crear Capítulo</button>
-            <button className="btn cancel" onClick={() => setShowForm(false)}>Cancelar</button>
-          </div>
-        </motion.div>
-      )}
-
       <section className="chapterGrid">
-        {filtered.map((c) => (
+        {filtered.map((c: any) => (
           <ChapterCard key={c.id} chapter={c} storyId={local.id} />
         ))}
         {filtered.length === 0 && <div className="empty">Sin resultados para "{query}"</div>}
@@ -468,15 +382,33 @@ function StoryDetail({ story, refreshStory }) {
   );
 }
 
-// ---------- ChapterCard ----------
-function ChapterCard({ chapter, storyId }) {
+// -------------------------
+// CreateChapterButton (redirige a editor)
+// -------------------------
+function CreateChapterButton({ storyId }: { storyId: string }) {
+  const router = useRouter();
+
+  function handleGo() {
+    // redirige a la página de edición para crear nuevo capítulo.
+    // Asegúrate de tener una ruta que capture "nuevo" o manejes en el editor.
+    router.push(`/escritura/capitulos/${storyId}/nuevo/editar`);
+  }
+
+  return (
+    <button className="btn create" onClick={handleGo}>
+      <Plus /> Nuevo Capítulo
+    </button>
+  );
+}
+
+function ChapterCard({ chapter, storyId }: { chapter: any; storyId: string }) {
   return (
     <article className="chapterCard" data-published={chapter.isPublished} tabIndex={0} aria-label={`Capítulo ${chapter.number}: ${chapter.title}`}>
       <div className="chapterHeader">
         <span className="chNumber">#{chapter.number}</span>
         <h3 className="chTitle">{chapter.title}</h3>
-        <span className={chapter.isPublished ? "badgeOk" : "badgeDraft"} title={chapter.isPublished ? "Publicado" : "Borrador"}>
-          {chapter.isPublished ? "Publicado" : "Borrador"}
+        <span className={chapter.isPublished ? 'badgeOk' : 'badgeDraft'} title={chapter.isPublished ? 'Publicado' : 'Borrador'}>
+          {chapter.isPublished ? 'Publicado' : 'Borrador'}
         </span>
       </div>
       <p className="chSummary">{chapter.summary}</p>
@@ -496,15 +428,18 @@ function ChapterCard({ chapter, storyId }) {
   );
 }
 
-// ---------- Wrapper: Capitulos ----------
-export default function Capitulos({ storyId: propStoryId } = {}) {
+// -------------------------
+// Wrapper: carga historias y selected story
+// -------------------------
+export default function Capitulos({ storyId: propStoryId }: { storyId?: string }) {
   const [selectedStoryId, setSelectedStoryId] = useState(propStoryId || '');
-  const [story, setStory] = useState(null);
-  const [storiesList, setStoriesList] = useState([]);
+  const [story, setStory] = useState<any | null>(null);
+  const [storiesList, setStoriesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [authReady, setAuthReady] = useState(false);
-  const [userId, setUserId] = useState(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
+  // auth init
   useEffect(() => {
     let mounted = true;
     const { data: sub } = supabase.auth.onAuthStateChange(async () => {
@@ -516,16 +451,14 @@ export default function Capitulos({ storyId: propStoryId } = {}) {
 
     (async () => {
       const s = await supabase.auth.getSession();
-      if (mounted) {
-        setUserId(s?.data?.session?.user?.id ?? null);
-        setAuthReady(true);
-      }
+      setUserId(s?.data?.session?.user?.id ?? null);
+      setAuthReady(true);
     })();
 
     return () => { mounted = false; sub?.subscription?.unsubscribe?.(); };
   }, []);
 
-  // load user's stories
+  // load user's stories (solo metadata)
   useEffect(() => {
     let mounted = true;
     if (!authReady) {
@@ -544,12 +477,9 @@ export default function Capitulos({ storyId: propStoryId } = {}) {
         if (error) throw error;
         if (!mounted) return;
         setStoriesList(data || []);
-        if (!selectedStoryId) {
-          if (data?.length) setSelectedStoryId(data[0].id);
-        }
+        if (!selectedStoryId && data?.length) setSelectedStoryId(data[0].id);
       } catch (err) {
         console.error('Error cargando historias', err);
-        alert('Error cargando tus historias (ver consola).');
       } finally {
         if (mounted) setLoading(false);
       }
@@ -557,35 +487,30 @@ export default function Capitulos({ storyId: propStoryId } = {}) {
     return () => { mounted = false; };
   }, [authReady, userId]);
 
-  // load story + chapters (two-step)
+  // load story + chapters: seleccionar chapters usando column names de tu BD
   useEffect(() => {
     let mounted = true;
     if (!selectedStoryId) return;
     (async () => {
       setLoading(true);
       try {
-        const { data: storyData, error: storyError } = await supabase
+        // solicitar story; NOTA: no intento traer columnas que no existan
+        const { data, error } = await supabase
           .from('stories')
-          .select('id, title, description, author_id, created_at, updated_at')
+          .select(`id, title, description, author_id, created_at, updated_at,
+                   chapters(id, story_id, chapter_number, title, summary, content, is_published, published_at)`)
           .eq('id', selectedStoryId)
           .maybeSingle();
-        if (storyError) throw storyError;
+
+        if (error) throw error;
         if (!mounted) return;
-        if (!storyData) { setStory(null); setLoading(false); return; }
-
-        const { data: chaptersData, error: chaptersError } = await supabase
-          .from('chapters')
-          .select('id, chapter_number, title, summary, content, is_published, published_at')
-          .eq('story_id', selectedStoryId)
-          .order('chapter_number', { ascending: true });
-
-        if (chaptersError) throw chaptersError;
-
-        const full = { ...storyData, chapters: chaptersData || [] };
-        setStory(mapStoryRowToLocal(full));
+        if (!data) {
+          setStory(null);
+        } else {
+          setStory(mapStoryRowToLocal(data));
+        }
       } catch (err) {
         console.error('Error cargando historia', err);
-        alert('Error cargando la historia (ver consola).');
         setStory(null);
       } finally {
         if (mounted) setLoading(false);
@@ -597,22 +522,14 @@ export default function Capitulos({ storyId: propStoryId } = {}) {
   const refreshStory = async () => {
     if (!selectedStoryId) return;
     try {
-      const { data: storyData, error: storyError } = await supabase
+      const { data, error } = await supabase
         .from('stories')
-        .select('id, title, description, author_id, created_at, updated_at')
+        .select(`id, title, description, author_id, created_at, updated_at,
+                 chapters(id, story_id, chapter_number, title, summary, content, is_published, published_at)`)
         .eq('id', selectedStoryId)
         .maybeSingle();
-      if (storyError) throw storyError;
-      if (!storyData) { setStory(null); return; }
-
-      const { data: chaptersData, error: chaptersError } = await supabase
-        .from('chapters')
-        .select('id, chapter_number, title, summary, content, is_published, published_at')
-        .eq('story_id', selectedStoryId)
-        .order('chapter_number', { ascending: true });
-
-      if (chaptersError) throw chaptersError;
-      setStory(mapStoryRowToLocal({ ...storyData, chapters: chaptersData || [] }));
+      if (error) throw error;
+      if (data) setStory(mapStoryRowToLocal(data));
     } catch (err) {
       console.error('refresh error', err);
     }
