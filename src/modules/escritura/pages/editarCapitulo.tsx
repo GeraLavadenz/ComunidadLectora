@@ -1,113 +1,224 @@
-"use client";
+// src/modules/escritura/pages/EditarCapitulo.tsx
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import "../styles/capitulos.css";
-import "../styles/editarCapitulo.css";
-import { stories } from "../storiesData";
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import supabase from '@/lib/supabaseClient';
+import '../styles/capitulos.css';
+import '../styles/editarCapitulo.css';
 
-// Función básica de corrección de IA (demo)
+// --- AI demo (no llamadas externas) ---
 const correctWithAI = (text: string): string => {
-  // Simulación de correcciones básicas
   let corrected = text
-    .replace(/\bi\b/g, 'I') // Capitalizar 'i' sola
-    .replace(/([.!?]\s*)([a-z])/g, (match, p1, p2) => p1 + p2.toUpperCase()) // Capitalizar después de puntuación
-    .replace(/\s+/g, ' ') // Espacios múltiples a uno
+    .replace(/\bi\b/g, 'I')
+    .replace(/([.!?]\s*)([a-z\u00E0-\u017F])/g, (m, p1, p2) => p1 + p2.toUpperCase())
+    .replace(/\s+/g, ' ')
     .trim();
-
-  // Agregar punto final si no tiene
-  if (!/[.!?]$/.test(corrected)) {
-    corrected += '.';
-  }
-
+  if (!/[.!?]$/.test(corrected)) corrected += '.';
   return corrected;
 };
 
-interface Chapter {
+type ChapterRow = {
   id: string;
-  number: number;
-  title: string;
-  summary: string;
-  isPublished: boolean;
-  publishedAt?: string;
-  content?: string; // Agregado para contenido editable
-}
+  story_id: string;
+  chapter_number: number;
+  title: string | null;
+  summary: string | null;
+  content: string | null;
+  is_published: boolean | null;
+  published_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
 
 export default function EditarCapitulo({ storyId, chapterId }: { storyId: string; chapterId: string }) {
   const router = useRouter();
-  const story = stories.find((s) => s.id === storyId);
-  const chapter = story?.chapters.find((c) => c.id === chapterId);
 
-  const [editedChapter, setEditedChapter] = useState<Chapter | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [chapter, setChapter] = useState<ChapterRow | null>(null);
+  const [editedContent, setEditedContent] = useState('');
+  const [editedTitle, setEditedTitle] = useState('');
+  const [editedSummary, setEditedSummary] = useState('');
+  const [isPublished, setIsPublished] = useState(false);
+  const [publishedAt, setPublishedAt] = useState<string | null>(null);
+
+  // AI comparison
   const [showComparison, setShowComparison] = useState(false);
-  const [aiCorrectedContent, setAiCorrectedContent] = useState<string>("");
+  const [aiCorrectedContent, setAiCorrectedContent] = useState('');
 
   useEffect(() => {
-    if (chapter) {
-      setEditedChapter({ ...chapter });
-    }
-  }, [chapter]);
+    let mounted = true;
 
-  if (!story || !chapter || !editedChapter) {
-    return <div className="page">Capítulo no encontrado</div>;
-  }
+    (async () => {
+      setLoading(true);
+      try {
+        if (chapterId === 'nuevo') {
+          // nuevo: iniciar campos vacíos
+          if (!mounted) return;
+          setChapter(null);
+          setEditedTitle('');
+          setEditedSummary('');
+          setEditedContent('');
+          setIsPublished(false);
+          setPublishedAt(null);
+          setLoading(false);
+          return;
+        }
 
-  const handleSave = () => {
-    // Aquí iría la lógica para guardar en backend, por ahora solo local
-    // Actualizar el storiesData (en una app real, esto sería una API call)
-    const storyIndex = stories.findIndex((s) => s.id === storyId);
-    if (storyIndex !== -1) {
-      const chapterIndex = stories[storyIndex].chapters.findIndex((c) => c.id === chapterId);
-      if (chapterIndex !== -1) {
-        stories[storyIndex].chapters[chapterIndex] = { ...editedChapter };
-        stories[storyIndex].updatedAt = new Date().toISOString();
-        alert("Capítulo guardado exitosamente");
-        router.push(`/escritura/capitulos/${storyId}`);
+        // cargar capítulo existente desde la tabla 'chapters'
+        const { data, error } = await supabase
+          .from<ChapterRow>('chapters')
+          .select('*')
+          .eq('id', chapterId)
+          .limit(1)
+          .single();
+
+        if (error) throw error;
+        if (!mounted) return;
+
+        setChapter(data ?? null);
+        setEditedTitle(data?.title ?? '');
+        setEditedSummary(data?.summary ?? '');
+        setEditedContent(data?.content ?? '');
+        setIsPublished(Boolean(data?.is_published));
+        setPublishedAt(data?.published_at ?? null);
+      } catch (err: any) {
+        console.error('Error cargando capítulo', err);
+        alert('No se pudo cargar el capítulo. Revisa la consola.');
+      } finally {
+        if (mounted) setLoading(false);
       }
-    }
-  };
+    })();
 
-  const handlePublishToggle = () => {
-    setEditedChapter((prev) => {
-      if (!prev) return prev;
-      const now = new Date().toISOString();
-      return {
-        ...prev,
-        isPublished: !prev.isPublished,
-        publishedAt: !prev.isPublished ? now : undefined,
-      };
-    });
+    return () => {
+      mounted = false;
+    };
+  }, [chapterId]);
+
+  // obtener siguiente chapter_number si vamos a crear
+  const getNextChapterNumber = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('chapters')
+        .select('chapter_number')
+        .eq('story_id', storyId)
+        .order('chapter_number', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+      const max = (data && data.length && (data[0] as any).chapter_number) || 0;
+      return Number(max) + 1;
+    } catch (err) {
+      console.error('Error leyendo max chapter_number', err);
+      return 1;
+    }
   };
 
   const handleAICorrection = () => {
-    if (editedChapter?.content) {
-      const corrected = correctWithAI(editedChapter.content);
-      setAiCorrectedContent(corrected);
-      setShowComparison(true);
-    }
+    const corrected = correctWithAI(editedContent || '');
+    setAiCorrectedContent(corrected);
+    setShowComparison(true);
   };
 
   const handleApplyCorrection = () => {
-    setEditedChapter((prev) => prev ? { ...prev, content: aiCorrectedContent } : prev);
+    setEditedContent(aiCorrectedContent);
     setShowComparison(false);
   };
+
+  const handlePublishToggle = () => {
+    if (!isPublished) {
+      const now = new Date().toISOString();
+      setPublishedAt(now);
+      setIsPublished(true);
+    } else {
+      setPublishedAt(null);
+      setIsPublished(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // validaciones mínimas
+      if (!editedTitle.trim()) {
+        alert('El capítulo necesita un título.');
+        setSaving(false);
+        return;
+      }
+
+      if (chapterId === 'nuevo') {
+        // crear nuevo capítulo: calcular chapter_number
+        const nextNumber = await getNextChapterNumber();
+        const insert = {
+          story_id: storyId,
+          chapter_number: nextNumber,
+          title: editedTitle.trim(),
+          summary: editedSummary || null,
+          content: editedContent || null,
+          is_published: isPublished || false,
+          published_at: isPublished ? publishedAt ?? new Date().toISOString() : null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        const { data, error } = await supabase.from('chapters').insert([insert]).select('*').single();
+        if (error) throw error;
+
+        // opcional: actualizar updated_at en stories
+        await supabase.from('stories').update({ updated_at: new Date().toISOString() }).eq('id', storyId);
+
+        alert('Capítulo creado correctamente.');
+        // redirigir a lista de capítulos o a editar recién creado
+        router.push(`/escritura/capitulos/${storyId}`);
+        return;
+      }
+
+      // update existente
+      const updatePayload: any = {
+        title: editedTitle.trim(),
+        summary: editedSummary || null,
+        content: editedContent || null,
+        is_published: isPublished,
+        updated_at: new Date().toISOString(),
+        published_at: isPublished ? (publishedAt ?? new Date().toISOString()) : null,
+      };
+
+      const { data: updated, error: updErr } = await supabase
+        .from('chapters')
+        .update(updatePayload)
+        .eq('id', chapterId)
+        .select('*')
+        .single();
+
+      if (updErr) throw updErr;
+
+      // opcional: actualizar updated_at en stories
+      await supabase.from('stories').update({ updated_at: new Date().toISOString() }).eq('id', storyId);
+
+      alert('Capítulo actualizado correctamente.');
+      router.push(`/escritura/capitulos/${storyId}`);
+    } catch (err: any) {
+      console.error('Error guardando capítulo', err);
+      alert('No se pudo guardar el capítulo. Revisa la consola.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="page">Cargando capítulo...</div>;
 
   return (
     <main className="page">
       <header className="hero">
         <div className="heroGlow" />
         <div className="heroContent">
-          <h1 className="title">Editar Capítulo #{editedChapter.number}</h1>
-          <p className="subtitle">
-            Historia: {story.title} por {story.author}
-          </p>
+          <h1 className="title"> {chapterId === 'nuevo' ? 'Crear capítulo nuevo' : `Editar Capítulo #${chapter?.chapter_number ?? '—'}`} </h1>
+          <p className="subtitle">Historia: {storyId}</p>
         </div>
+
         <div className="aiButtonContainer">
-          <button
-            onClick={handleAICorrection}
-            title="IA: Corrige gramática y mejora la continuidad de la historia"
-            className="aiButton"
-          >
+          <button onClick={handleAICorrection} title="IA: Corrige gramática y mejora la continuidad de la historia" className="aiButton">
             🤖 Kolla IA
           </button>
         </div>
@@ -116,87 +227,58 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
       <section className="meta metaSection">
         <article className="card cardArticle">
           <h2>Detalles del Capítulo</h2>
+
           <div className="formGroup">
-            <label htmlFor="title" className="label">
-              Título
-            </label>
-            <input
-              id="title"
-              type="text"
-              value={editedChapter.title}
-              onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, title: e.target.value } : prev)}
-              className="input input"
-            />
+            <label htmlFor="title" className="label">Título</label>
+            <input id="title" type="text" value={editedTitle} onChange={(e) => setEditedTitle(e.target.value)} className="input" />
           </div>
+
           <div className="formGroup">
-            <label htmlFor="summary" className="label">
-              Resumen
-            </label>
-            <textarea
-              id="summary"
-              value={editedChapter.summary}
-              onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, summary: e.target.value } : prev)}
-              className="input textarea"
-            />
+            <label htmlFor="summary" className="label">Resumen</label>
+            <textarea id="summary" value={editedSummary} onChange={(e) => setEditedSummary(e.target.value)} className="input textarea" />
           </div>
+
           <div className="formGroup">
-            <label htmlFor="content" className="label">
-              Contenido
-            </label>
+            <label htmlFor="content" className="label">Contenido</label>
+
             {showComparison ? (
               <div className="comparisonContainer">
                 <div className="comparisonColumn">
                   <h4 className="comparisonHeader comparisonHeaderOriginal">Texto Original</h4>
                   <textarea
-                    id="content"
-                    value={editedChapter.content || ""}
-                    onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, content: e.target.value } : prev)}
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
                     className="input contentTextarea"
-                    placeholder="Escribe el contenido completo del capítulo aquí..."
+                    rows={14}
                   />
                 </div>
+
                 <div className="comparisonColumn">
                   <h4 className="comparisonHeader comparisonHeaderCorrected">Corregido por IA</h4>
-                  <textarea
-                    value={aiCorrectedContent}
-                    readOnly
-                    className="correctedTextarea"
-                  />
+                  <textarea value={aiCorrectedContent} readOnly className="correctedTextarea" rows={14} />
                 </div>
               </div>
             ) : (
-              <textarea
-                id="content"
-                value={editedChapter.content || ""}
-                onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, content: e.target.value } : prev)}
-                className="input contentTextarea"
-                placeholder="Escribe el contenido completo del capítulo aquí..."
-              />
+              <textarea value={editedContent} onChange={(e) => setEditedContent(e.target.value)} className="input contentTextarea" rows={18} />
             )}
+
             {showComparison && (
               <div className="correctionButtons">
-                <button onClick={handleApplyCorrection} className="btnGhost" style={{ background: "var(--brand)", color: "var(--bg)" }}>
+                <button onClick={handleApplyCorrection} className="btnGhost" style={{ background: 'var(--brand)', color: 'var(--bg)' }}>
                   Aplicar Corrección
                 </button>
-                <button onClick={() => setShowComparison(false)} className="btnGhost">
-                  Cancelar
-                </button>
+                <button onClick={() => setShowComparison(false)} className="btnGhost">Cancelar</button>
               </div>
             )}
           </div>
-          <div className="publishedToggle">
+
+          <div className="publishedToggle" style={{ marginTop: 12 }}>
             <label className="switch">
-              <input
-                type="checkbox"
-                checked={editedChapter.isPublished}
-                onChange={handlePublishToggle}
-              />
+              <input type="checkbox" checked={isPublished} onChange={handlePublishToggle} />
               <span>Publicado</span>
             </label>
-            {editedChapter.isPublished && editedChapter.publishedAt && (
-              <span className="date">
-                Publicado el {new Date(editedChapter.publishedAt).toLocaleDateString()}
-              </span>
+            {isPublished && publishedAt && (
+              <span className="date">Publicado el {new Date(publishedAt).toLocaleDateString()}</span>
             )}
           </div>
         </article>
@@ -204,16 +286,12 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
 
       <section className="bottomSection">
         <div className="bottomButtons">
-          <button onClick={handleSave} className="btnGhost" style={{ background: "var(--brand)", color: "var(--bg)" }}>
-            Guardar Cambios
+          <button onClick={handleSave} className="btnGhost" style={{ background: 'var(--brand)', color: 'var(--bg)' }} disabled={saving}>
+            {saving ? 'Guardando...' : (chapterId === 'nuevo' ? 'Crear capítulo' : 'Guardar cambios')}
           </button>
-          <button onClick={() => router.back()} className="btnGhost">
-            Cancelar
-          </button>
+          <button onClick={() => router.back()} className="btnGhost">Cancelar</button>
         </div>
       </section>
-
-
     </main>
   );
 }
