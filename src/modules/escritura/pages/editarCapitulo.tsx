@@ -1,297 +1,419 @@
-// src/modules/escritura/pages/EditarCapitulo.tsx
+// src/modules/escritura/pages/capitulos.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState, useEffect } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
 import { useRouter } from 'next/navigation';
 import supabase from '@/lib/supabaseClient';
-import '../styles/capitulos.css';
-import '../styles/editarCapitulo.css';
+import { Plus } from 'lucide-react';
+import "../styles/capitulos.css";
+import { stories } from "./storiesData"; // solo para demo/local
 
-// --- AI demo (no llamadas externas) ---
-const correctWithAI = (text: string): string => {
-  let corrected = text
-    .replace(/\bi\b/g, 'I')
-    .replace(/([.!?]\s*)([a-z\u00E0-\u017F])/g, (m, p1, p2) => p1 + p2.toUpperCase())
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!/[.!?]$/.test(corrected)) corrected += '.';
-  return corrected;
-};
+// helpers (igual que antes)
+function normalizeStr(s: any) {
+  return (s || "").toString().toLowerCase();
+}
 
-type ChapterRow = {
-  id: string;
-  story_id: string;
-  chapter_number: number;
-  title: string | null;
-  summary: string | null;
-  content: string | null;
-  is_published: boolean | null;
-  published_at: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-};
+function filterChapters(story: any, query: string, onlyPublished: boolean, sortBy: string) {
+  const q = (query || "").trim().toLowerCase();
+  let arr = (story?.chapters || []).filter((c: any) => {
+    const hit =
+      normalizeStr(c.title).includes(q) ||
+      normalizeStr(c.summary).includes(q) ||
+      (q !== "" && String(c.number) === q);
+    return onlyPublished ? hit && c.is_published : hit;
+  });
 
-export default function EditarCapitulo({ storyId, chapterId }: { storyId: string; chapterId: string }) {
+  switch (sortBy) {
+    case "num-desc":
+      arr = [...arr].sort((a: any, b: any) => b.number - a.number);
+      break;
+    case "title":
+      arr = [...arr].sort((a: any, b: any) => a.title.localeCompare(b.title));
+      break;
+    default:
+      arr = [...arr].sort((a: any, b: any) => a.number - b.number);
+  }
+  return arr;
+}
+
+function addChip(list: string[] | undefined, value: string) {
+  const v = (value || "").trim();
+  if (!v) return list || [];
+  const exists = (list || []).some((x: string) => x.toLowerCase() === v.toLowerCase());
+  return exists ? list : [...(list || []), v];
+}
+function removeChip(list: string[] | undefined, value: string) {
+  const v = (value || "").toLowerCase();
+  return (list || []).filter((x: string) => x.toLowerCase() !== v);
+}
+
+function mapStoryRowToLocal(row: any) {
+  return {
+    id: row.id,
+    title: row.title,
+    author: row.author_name ?? row.author_id,
+    description: row.description ?? '',
+    genres: row.genres ?? [],
+    tags: row.tags ?? [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    chapters: (row.chapters || []).map((c: any) => ({
+      id: c.id,
+      number: c.number,
+      title: c.title,
+      summary: c.summary,
+      content: c.content,
+      isPublished: Boolean(c.is_published),
+      publishedAt: c.published_at,
+    })),
+  };
+}
+
+// -------------------------
+// StoryDetail (usa router para crear capítulo)
+// -------------------------
+function StoryDetail({ story, refreshStory }: { story: any, refreshStory?: () => void }) {
   const router = useRouter();
+  const [local, setLocal] = useState(() => ({ ...story }));
+  const [query, setQuery] = useState("");
+  const [onlyPublished, setOnlyPublished] = useState(false);
+  const [sortBy, setSortBy] = useState("num-asc");
+  // dejamos showForm en caso quieras reusar, pero botón irá a la ruta de creación
+  const [showForm, setShowForm] = useState(false);
+  const [newChapter, setNewChapter] = useState({ title: '', summary: '', content: '', isPublished: false });
+  const [savingGenres, setSavingGenres] = useState(false);
+  const [savingTags, setSavingTags] = useState(false);
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [chapter, setChapter] = useState<ChapterRow | null>(null);
-  const [editedContent, setEditedContent] = useState('');
-  const [editedTitle, setEditedTitle] = useState('');
-  const [editedSummary, setEditedSummary] = useState('');
-  const [isPublished, setIsPublished] = useState(false);
-  const [publishedAt, setPublishedAt] = useState<string | null>(null);
+  useEffect(() => setLocal({ ...story }), [story]);
 
-  // AI comparison
-  const [showComparison, setShowComparison] = useState(false);
-  const [aiCorrectedContent, setAiCorrectedContent] = useState('');
+  const stats = useMemo(() => {
+    const total = local?.chapters?.length || 0;
+    const published = (local?.chapters || []).filter((c: any) => c.isPublished).length;
+    const pct = total ? Math.round((published / total) * 100) : 0;
+    return { total, published, pct };
+  }, [local]);
 
-  useEffect(() => {
-    let mounted = true;
+  const filtered = useMemo(() => filterChapters(local, query, onlyPublished, sortBy), [local, query, onlyPublished, sortBy]);
 
-    (async () => {
-      setLoading(true);
-      try {
-        if (chapterId === 'nuevo') {
-          // nuevo: iniciar campos vacíos
-          if (!mounted) return;
-          setChapter(null);
-          setEditedTitle('');
-          setEditedSummary('');
-          setEditedContent('');
-          setIsPublished(false);
-          setPublishedAt(null);
-          setLoading(false);
-          return;
-        }
-
-        // cargar capítulo existente desde la tabla 'chapters'
-        const { data, error } = await supabase
-          .from<ChapterRow>('chapters')
-          .select('*')
-          .eq('id', chapterId)
-          .limit(1)
-          .single();
-
-        if (error) throw error;
-        if (!mounted) return;
-
-        setChapter(data ?? null);
-        setEditedTitle(data?.title ?? '');
-        setEditedSummary(data?.summary ?? '');
-        setEditedContent(data?.content ?? '');
-        setIsPublished(Boolean(data?.is_published));
-        setPublishedAt(data?.published_at ?? null);
-      } catch (err: any) {
-        console.error('Error cargando capítulo', err);
-        alert('No se pudo cargar el capítulo. Revisa la consola.');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, [chapterId]);
-
-  // obtener siguiente chapter_number si vamos a crear
-  const getNextChapterNumber = async () => {
+  async function persistStoryFields(updates: any) {
     try {
+      const payload = { ...updates, updated_at: new Date().toISOString() };
       const { data, error } = await supabase
-        .from('chapters')
-        .select('chapter_number')
-        .eq('story_id', storyId)
-        .order('chapter_number', { ascending: false })
-        .limit(1);
+        .from('stories')
+        .update(payload)
+        .eq('id', local.id)
+        .select()
+        .maybeSingle();
 
       if (error) throw error;
-      const max = (data && data.length && (data[0] as any).chapter_number) || 0;
-      return Number(max) + 1;
-    } catch (err) {
-      console.error('Error leyendo max chapter_number', err);
-      return 1;
-    }
-  };
-
-  const handleAICorrection = () => {
-    const corrected = correctWithAI(editedContent || '');
-    setAiCorrectedContent(corrected);
-    setShowComparison(true);
-  };
-
-  const handleApplyCorrection = () => {
-    setEditedContent(aiCorrectedContent);
-    setShowComparison(false);
-  };
-
-  const handlePublishToggle = () => {
-    if (!isPublished) {
-      const now = new Date().toISOString();
-      setPublishedAt(now);
-      setIsPublished(true);
-    } else {
-      setPublishedAt(null);
-      setIsPublished(false);
-    }
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      // validaciones mínimas
-      if (!editedTitle.trim()) {
-        alert('El capítulo necesita un título.');
-        setSaving(false);
-        return;
+      if (data) {
+        const mapped = mapStoryRowToLocal({ ...data, chapters: local.chapters });
+        setLocal(mapped);
+        if (typeof refreshStory === 'function') refreshStory();
       }
-
-      if (chapterId === 'nuevo') {
-        // crear nuevo capítulo: calcular chapter_number
-        const nextNumber = await getNextChapterNumber();
-        const insert = {
-          story_id: storyId,
-          chapter_number: nextNumber,
-          title: editedTitle.trim(),
-          summary: editedSummary || null,
-          content: editedContent || null,
-          is_published: isPublished || false,
-          published_at: isPublished ? publishedAt ?? new Date().toISOString() : null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        const { data, error } = await supabase.from('chapters').insert([insert]).select('*').single();
-        if (error) throw error;
-
-        // opcional: actualizar updated_at en stories
-        await supabase.from('stories').update({ updated_at: new Date().toISOString() }).eq('id', storyId);
-
-        alert('Capítulo creado correctamente.');
-        // redirigir a lista de capítulos o a editar recién creado
-        router.push(`/escritura/capitulos/${storyId}`);
-        return;
-      }
-
-      // update existente
-      const updatePayload: any = {
-        title: editedTitle.trim(),
-        summary: editedSummary || null,
-        content: editedContent || null,
-        is_published: isPublished,
-        updated_at: new Date().toISOString(),
-        published_at: isPublished ? (publishedAt ?? new Date().toISOString()) : null,
-      };
-
-      const { data: updated, error: updErr } = await supabase
-        .from('chapters')
-        .update(updatePayload)
-        .eq('id', chapterId)
-        .select('*')
-        .single();
-
-      if (updErr) throw updErr;
-
-      // opcional: actualizar updated_at en stories
-      await supabase.from('stories').update({ updated_at: new Date().toISOString() }).eq('id', storyId);
-
-      alert('Capítulo actualizado correctamente.');
-      router.push(`/escritura/capitulos/${storyId}`);
     } catch (err: any) {
-      console.error('Error guardando capítulo', err);
-      alert('No se pudo guardar el capítulo. Revisa la consola.');
-    } finally {
-      setSaving(false);
+      console.error('Error persisting story fields', err);
+      alert('No se pudo actualizar la historia en el servidor. Revisa consola.');
     }
-  };
+  }
 
-  if (loading) return <div className="page">Cargando capítulo...</div>;
+  function handleAddTag(val: string) {
+    const updated = addChip(local.tags, val);
+    setLocal((s: any) => ({ ...s, tags: updated, updatedAt: new Date().toISOString() }));
+    setSavingTags(true);
+    persistStoryFields({ tags: updated }).finally(() => setSavingTags(false));
+  }
+  function handleRemoveTag(val: string) {
+    const updated = removeChip(local.tags, val);
+    setLocal((s: any) => ({ ...s, tags: updated, updatedAt: new Date().toISOString() }));
+    setSavingTags(true);
+    persistStoryFields({ tags: updated }).finally(() => setSavingTags(false));
+  }
+  function handleAddGenre(val: string) {
+    const updated = addChip(local.genres, val);
+    setLocal((s: any) => ({ ...s, genres: updated, updatedAt: new Date().toISOString() }));
+    setSavingGenres(true);
+    persistStoryFields({ genres: updated }).finally(() => setSavingGenres(false));
+  }
+  function handleRemoveGenre(val: string) {
+    const updated = removeChip(local.genres, val);
+    setLocal((s: any) => ({ ...s, genres: updated, updatedAt: new Date().toISOString() }));
+    setSavingGenres(true);
+    persistStoryFields({ genres: updated }).finally(() => setSavingGenres(false));
+  }
+
+  // Nota: el botón ahora REDIRIJE a la ruta de creación en lugar de abrir el form inline.
+  const handleGoCreate = () => {
+    router.push(`/escritura/capitulos/${local.id}/new`);
+  };
 
   return (
     <main className="page">
       <header className="hero">
         <div className="heroGlow" />
         <div className="heroContent">
-          <h1 className="title"> {chapterId === 'nuevo' ? 'Crear capítulo nuevo' : `Editar Capítulo #${chapter?.chapter_number ?? '—'}`} </h1>
-          <p className="subtitle">Historia: {storyId}</p>
-        </div>
-
-        <div className="aiButtonContainer">
-          <button onClick={handleAICorrection} title="IA: Corrige gramática y mejora la continuidad de la historia" className="aiButton">
-            🤖 Kolla IA
-          </button>
+          <h1 className="title">{local.title}</h1>
+          <p className="subtitle">por <strong>{local.author}</strong></p>
+          <div className="badges" aria-label="Géneros y etiquetas">
+            {(local.genres || []).map((g: string) => <span key={g} className="badgeGenre">{g}</span>)}
+            {(local.tags || []).map((t: string) => <span key={t} className="badgeTag">#{t}</span>)}
+          </div>
         </div>
       </header>
 
-      <section className="meta metaSection">
-        <article className="card cardArticle">
-          <h2>Detalles del Capítulo</h2>
+      <section className="meta">
+        <article className="card">
+          <h2>Descripción</h2>
+          <p>{local.description}</p>
+          <ul className="metaList">
+            <li><span>Creado:</span> {new Date(local.createdAt).toLocaleDateString()}</li>
+            <li><span>Actualizado:</span> {new Date(local.updatedAt).toLocaleDateString()}</li>
+            <li><span>Capítulos:</span> {stats.total}</li>
+          </ul>
 
-          <div className="formGroup">
-            <label htmlFor="title" className="label">Título</label>
-            <input id="title" type="text" value={editedTitle} onChange={(e) => setEditedTitle(e.target.value)} className="input" />
+          <div className="editRow">
+            <h3 className="editTitle">Géneros {savingGenres ? '(guardando...)' : ''}</h3>
+            <ChipEditor items={local.genres} placeholder="Añadir género y Enter" onAdd={handleAddGenre} onRemove={handleRemoveGenre} badgeClass="genreChip" ariaLabel="Editor de géneros" />
           </div>
 
-          <div className="formGroup">
-            <label htmlFor="summary" className="label">Resumen</label>
-            <textarea id="summary" value={editedSummary} onChange={(e) => setEditedSummary(e.target.value)} className="input textarea" />
+          <div className="editRow">
+            <h3 className="editTitle">Etiquetas {savingTags ? '(guardando...)' : ''}</h3>
+            <ChipEditor items={local.tags} placeholder="Añadir etiqueta y Enter" onAdd={handleAddTag} onRemove={handleRemoveTag} badgeClass="tagChip" ariaLabel="Editor de etiquetas" />
           </div>
 
-          <div className="formGroup">
-            <label htmlFor="content" className="label">Contenido</label>
+          <p className="note">Puedes modificar <strong>géneros</strong> y <strong>etiquetas</strong>. Los cambios se guardan en la base de datos.</p>
+        </article>
 
-            {showComparison ? (
-              <div className="comparisonContainer">
-                <div className="comparisonColumn">
-                  <h4 className="comparisonHeader comparisonHeaderOriginal">Texto Original</h4>
-                  <textarea
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="input contentTextarea"
-                    rows={14}
-                  />
-                </div>
-
-                <div className="comparisonColumn">
-                  <h4 className="comparisonHeader comparisonHeaderCorrected">Corregido por IA</h4>
-                  <textarea value={aiCorrectedContent} readOnly className="correctedTextarea" rows={14} />
-                </div>
-              </div>
-            ) : (
-              <textarea value={editedContent} onChange={(e) => setEditedContent(e.target.value)} className="input contentTextarea" rows={18} />
-            )}
-
-            {showComparison && (
-              <div className="correctionButtons">
-                <button onClick={handleApplyCorrection} className="btnGhost" style={{ background: 'var(--brand)', color: 'var(--bg)' }}>
-                  Aplicar Corrección
-                </button>
-                <button onClick={() => setShowComparison(false)} className="btnGhost">Cancelar</button>
-              </div>
-            )}
+        <article className="card">
+          <h2>Publicación</h2>
+          <div className="progressBar" aria-label="Progreso de publicación">
+            <div className="progressFill" style={{ width: `${stats.pct}%` }} />
           </div>
-
-          <div className="publishedToggle" style={{ marginTop: 12 }}>
-            <label className="switch">
-              <input type="checkbox" checked={isPublished} onChange={handlePublishToggle} />
-              <span>Publicado</span>
-            </label>
-            {isPublished && publishedAt && (
-              <span className="date">Publicado el {new Date(publishedAt).toLocaleDateString()}</span>
-            )}
-          </div>
+          <p className="progressText">{stats.published} publicados de {stats.total} ({stats.pct}%)</p>
         </article>
       </section>
 
-      <section className="bottomSection">
-        <div className="bottomButtons">
-          <button onClick={handleSave} className="btnGhost" style={{ background: 'var(--brand)', color: 'var(--bg)' }} disabled={saving}>
-            {saving ? 'Guardando...' : (chapterId === 'nuevo' ? 'Crear capítulo' : 'Guardar cambios')}
-          </button>
-          <button onClick={() => router.back()} className="btnGhost">Cancelar</button>
+      <section className="toolbar">
+        <div className="searchBox">
+          <input className="input" placeholder="Buscar por número, título o resumen..." value={query} onChange={(e) => setQuery(e.target.value)} />
+          <span className="searchIcon" aria-hidden>⌕</span>
         </div>
+        <label className="switch">
+          <input type="checkbox" checked={onlyPublished} onChange={(e) => setOnlyPublished(e.target.checked)} />
+          <span>Solo publicados</span>
+        </label>
+        <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Ordenar capítulos">
+          <option value="num-asc">Número ↑</option>
+          <option value="num-desc">Número ↓</option>
+          <option value="title">Título A–Z</option>
+        </select>
+
+        {/* <-- CAMBIO: en vez de togglear un formulario inline, redirige a la ruta de edición/creación */}
+        <button className="btn create" onClick={handleGoCreate}>
+          <Plus /> Nuevo Capítulo
+        </button>
+      </section>
+
+      {/* Opcional: conservé el formulario inline (se puede eliminar) */}
+      {showForm && (
+        <motion.div className="formContainer" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+          <h3>Crear Nuevo Capítulo</h3>
+          <div className="formGroup">
+            <label>Título:</label>
+            <input type="text" value={newChapter.title} onChange={(e) => setNewChapter({ ...newChapter, title: e.target.value })} placeholder="Ingresa el título del capítulo" />
+          </div>
+          <div className="formGroup">
+            <label>Resumen:</label>
+            <textarea value={newChapter.summary} onChange={(e) => setNewChapter({ ...newChapter, summary: e.target.value })} placeholder="Describe brevemente el capítulo" rows={3} />
+          </div>
+        </motion.div>
+      )}
+
+      <section className="chapterGrid">
+        {filtered.map((c: any) => (
+          <ChapterCard key={c.id} chapter={c} storyId={local.id} />
+        ))}
+        {filtered.length === 0 && <div className="empty">Sin resultados para "{query}"</div>}
       </section>
     </main>
+  );
+}
+
+function ChapterCard({ chapter, storyId }: { chapter: any, storyId: string }) {
+  return (
+    <article className="chapterCard" data-published={chapter.isPublished} tabIndex={0} aria-label={`Capítulo ${chapter.number}: ${chapter.title}`}>
+      <div className="chapterHeader">
+        <span className="chNumber">#{chapter.number}</span>
+        <h3 className="chTitle">{chapter.title}</h3>
+        <span className={chapter.isPublished ? "badgeOk" : "badgeDraft"} title={chapter.isPublished ? "Publicado" : "Borrador"}>
+          {chapter.isPublished ? "Publicado" : "Borrador"}
+        </span>
+      </div>
+      <p className="chSummary">{chapter.summary}</p>
+      <footer className="chFooter">
+        {chapter.isPublished ? (
+          <time className="date" dateTime={chapter.publishedAt}>
+            Publicado el {chapter.publishedAt && new Date(chapter.publishedAt).toLocaleDateString()}
+          </time>
+        ) : (
+          <em className="pending">Pendiente de publicación</em>
+        )}
+        <Link href={`/escritura/capitulos/${storyId}/${chapter.id}/editar`}>
+          <button className="btnGhost">Editar</button>
+        </Link>
+      </footer>
+    </article>
+  );
+}
+
+// Wrapper que carga la historia desde Supabase (o stories demo)
+export default function Capitulos({ storyId: propStoryId }: { storyId?: string } = {}) {
+  const [selectedStoryId, setSelectedStoryId] = useState(propStoryId || '');
+  const [story, setStory] = useState<any | null>(null);
+  const [storiesList, setStoriesList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const { data: sub } = supabase.auth.onAuthStateChange(async () => {
+      const s = await supabase.auth.getSession();
+      if (!mounted) return;
+      setUserId(s?.data?.session?.user?.id ?? null);
+      setAuthReady(true);
+    });
+
+    (async () => {
+      const s = await supabase.auth.getSession();
+      setUserId(s?.data?.session?.user?.id ?? null);
+      setAuthReady(true);
+    })();
+
+    return () => { mounted = false; sub?.subscription?.unsubscribe?.(); };
+  }, []);
+
+  // cargar historias del usuario
+  useEffect(() => {
+    let mounted = true;
+    if (!authReady) {
+      setLoading(false);
+      return () => { mounted = false; };
+    }
+    (async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('stories')
+          .select('id, title, description, author_id, created_at, updated_at')
+          .eq('author_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (!mounted) return;
+        setStoriesList(data || []);
+        if (!selectedStoryId) {
+          if (data?.length) setSelectedStoryId(data[0].id);
+        }
+      } catch (err) {
+        console.error('Error cargando historias', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [authReady, userId]);
+
+  // cargar historia + capítulos
+  useEffect(() => {
+    let mounted = true;
+    if (!selectedStoryId) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('stories')
+          .select(`id, title, description, author_id, created_at, updated_at,
+                   chapters(id, number, title, summary, content, is_published, published_at)`)
+          .eq('id', selectedStoryId)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (!mounted) return;
+        if (!data) setStory(null);
+        else setStory(mapStoryRowToLocal(data));
+      } catch (err) {
+        console.error('Error cargando historia', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [selectedStoryId]);
+
+  const refreshStory = async () => {
+    if (!selectedStoryId) return;
+    try {
+      const { data, error } = await supabase
+        .from('stories')
+        .select(`id, title, description, author_id, created_at, updated_at,
+                 chapters(id, number, title, summary, content, is_published, published_at)`)
+        .eq('id', selectedStoryId)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) setStory(mapStoryRowToLocal(data));
+    } catch (err) {
+      console.error('refresh error', err);
+    }
+  };
+
+  if (!authReady) return <div className="page">Comprobando autenticación...</div>;
+  if (loading) return <div className="page">Cargando...</div>;
+  if (!story) return <div className="page">No se encontró la historia seleccionada.</div>;
+
+  return (
+    <div>
+      <div className="topBar">
+        <label className="topLabel">Historia:</label>
+        <select className="topSelect" value={selectedStoryId} onChange={(e) => setSelectedStoryId(e.target.value)}>
+          {storiesList.map((s) => (
+            <option key={s.id} value={s.id}>{s.title}</option>
+          ))}
+        </select>
+      </div>
+
+      <StoryDetail story={story} refreshStory={refreshStory} />
+    </div>
+  );
+}
+
+// Chip editor UI (igual)
+function ChipEditor({ items = [], placeholder, onAdd, onRemove, badgeClass = "", ariaLabel = "" }: any) {
+  const [value, setValue] = useState("");
+
+  function onKeyDown(e: any) {
+    if (e.key === "Enter") {
+      const v = value.trim();
+      if (v) {
+        onAdd(v);
+        setValue("");
+      }
+    }
+  }
+
+  return (
+    <div aria-label={ariaLabel}>
+      <div className="chips">
+        {items.map((it: string) => (
+          <span key={it} className={`chip ${badgeClass}`}>
+            {it}
+            <button className="chipRemove" title={`Eliminar ${it}`} onClick={() => onRemove(it)} aria-label={`Eliminar ${it}`}>×</button>
+          </span>
+        ))}
+      </div>
+      <input className="chipInput" placeholder={placeholder} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={onKeyDown} />
+    </div>
   );
 }
