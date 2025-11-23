@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Filter, ChevronDown } from "lucide-react";
-import Chip from "./Chip";
-import supabase from "../../../lib/supabaseClient"; // opcional si cargas directo desde cliente
-import "../styles/FiltersPanel.css";
+// app/components/FiltersPanel.tsx
+'use client';
 
-/** Simple debounce hook */
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Filter, ChevronDown } from 'lucide-react';
+import Chip from './Chip';
+import '../styles/FiltersPanel.css';
+
 function useDebounced<ValueT>(value: ValueT, delay = 300) {
   const [v, setV] = useState(value);
   useEffect(() => {
@@ -15,7 +16,7 @@ function useDebounced<ValueT>(value: ValueT, delay = 300) {
   return v;
 }
 
-type TagRow = { id: string; name: string; type: "genre" | "tag" | string };
+type TagRow = { id: string; name: string; type: 'genre' | 'tag' | string };
 
 interface FiltersPanelProps {
   allGenres?: Array<{ id: string; name: string }>;
@@ -32,10 +33,8 @@ interface FiltersPanelProps {
 
   genreFromUrl?: { id: string; name: string } | null;
 
+  /** If true the component fetches data itself (default true) */
   fetchFromServer?: boolean;
-
-  apiGenresPath?: string;
-  apiTagsPath?: string;
 }
 
 export default function FiltersPanel({
@@ -49,26 +48,33 @@ export default function FiltersPanel({
   onAuthor,
   genreFromUrl,
   fetchFromServer = true,
-  apiGenresPath,
-  apiTagsPath,
 }: FiltersPanelProps) {
   const [open, setOpen] = useState(true);
 
   const [fetchedGenres, setFetchedGenres] = useState<TagRow[] | null>(null);
   const [fetchedTags, setFetchedTags] = useState<TagRow[] | null>(null);
-  const [loadingGenres, setLoadingGenres] = useState(false);
-  const [loadingTags, setLoadingTags] = useState(false);
-  const [errorGenres, setErrorGenres] = useState<string | null>(null);
-  const [errorTags, setErrorTags] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const selectedGenresSet = useMemo(() => {
-    return selectedGenres instanceof Set ? selectedGenres : new Set(selectedGenres ?? []);
-  }, [selectedGenres]);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-  const selectedTagsSet = useMemo(() => {
-    return selectedTags instanceof Set ? selectedTags : new Set(selectedTags ?? []);
-  }, [selectedTags]);
+  const selectedGenresSet = useMemo(
+    () => (selectedGenres instanceof Set ? selectedGenres : new Set(selectedGenres ?? [])),
+    [selectedGenres]
+  );
 
+  const selectedTagsSet = useMemo(
+    () => (selectedTags instanceof Set ? selectedTags : new Set(selectedTags ?? [])),
+    [selectedTags]
+  );
+
+  // debounce author changes before notifying parent
   const debouncedAuthor = useDebounced(author, 300);
   useEffect(() => {
     onAuthor(debouncedAuthor);
@@ -77,89 +83,60 @@ export default function FiltersPanel({
 
   function getNameById(id: string, list: { id: string; name: string }[] | null | undefined) {
     if (!list || list.length === 0) return id;
-    const found = list.find((x) => x.id === id);
+    const found = list.find((x) => String(x.id) === String(id));
     return found ? found.name : id;
   }
 
-  const fetchGenres = useCallback(async () => {
-    if (allGenresProp && allGenresProp.length > 0) {
-      setFetchedGenres(allGenresProp.map((g) => ({ id: g.id, name: g.name, type: "genre" })));
-      return;
-    }
+  // Normalize to guarantee string ids and shape
+  const normalizeRows = (rows: any[], type: string): TagRow[] =>
+    (rows ?? []).map((r, idx) => {
+      const rawId = r.id ?? r.slug ?? r.name ?? `${type}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
+      const name = r.name ?? r.title ?? String(rawId);
+      return { id: String(rawId), name: String(name), type };
+    });
 
-    setLoadingGenres(true);
-    setErrorGenres(null);
+  const fetchMeta = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      if (apiGenresPath) {
-        const res = await fetch(apiGenresPath);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        setFetchedGenres((json ?? []).map((r: any) => ({ id: r.id, name: r.name, type: "genre" })));
-      } else {
-        const { data, error } = await supabase
-          .from("tags")
-          .select("id, name, type")
-          .eq("type", "genre")
-          .order("name", { ascending: true });
+      const res = await fetch('/api/library/meta');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
 
-        if (error) throw error;
-        setFetchedGenres((data ?? []).map((r: any) => ({ id: r.id, name: r.name, type: r.type })));
-      }
+      // Expect { genres: [...], tags: [...] }
+      const genres = normalizeRows(json.genres ?? [], 'genre');
+      const tags = normalizeRows(json.tags ?? [], 'tag');
+
+      if (!mountedRef.current) return;
+      setFetchedGenres(genres);
+      setFetchedTags(tags);
     } catch (err: any) {
-      setErrorGenres(err?.message ?? "Error al cargar géneros");
-      setFetchedGenres([]);
-    } finally {
-      setLoadingGenres(false);
-    }
-  }, [allGenresProp, apiGenresPath]);
-
-  const fetchTags = useCallback(async () => {
-    if (allTagsProp && allTagsProp.length > 0) {
-      setFetchedTags(allTagsProp.map((g) => ({ id: g.id, name: g.name, type: "tag" })));
-      return;
-    }
-
-    setLoadingTags(true);
-    setErrorTags(null);
-    try {
-      if (apiTagsPath) {
-        const res = await fetch(apiTagsPath);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        setFetchedTags((json ?? []).map((r: any) => ({ id: r.id, name: r.name, type: "tag" })));
-      } else {
-        const { data, error } = await supabase
-          .from("tags")
-          .select("id, name, type")
-          .eq("type", "tag")
-          .order("name", { ascending: true });
-
-        if (error) throw error;
-        setFetchedTags((data ?? []).map((r: any) => ({ id: r.id, name: r.name, type: r.type })));
+      console.error('FiltersPanel.fetchMeta error:', err);
+      if (mountedRef.current) {
+        setError(err?.message ?? 'Error cargando datos');
+        setFetchedGenres((prev) => prev ?? []); // avoid flicker by keeping null->[] consistent
+        setFetchedTags((prev) => prev ?? []);
       }
-    } catch (err: any) {
-      setErrorTags(err?.message ?? "Error al cargar etiquetas");
-      setFetchedTags([]);
     } finally {
-      setLoadingTags(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [allTagsProp, apiTagsPath]);
+  }, []);
 
   useEffect(() => {
     if (!fetchFromServer) return;
-    fetchGenres();
-    fetchTags();
-  }, [fetchFromServer, fetchGenres, fetchTags]);
+    fetchMeta();
+  }, [fetchFromServer, fetchMeta]);
 
+  // prefer props if provided (props override only when non-empty)
   const genresList = useMemo(() => {
     if (allGenresProp && allGenresProp.length > 0)
-      return allGenresProp.map((g) => ({ id: g.id, name: g.name, type: "genre" as const }));
+      return allGenresProp.map((g) => ({ id: String(g.id), name: g.name, type: 'genre' as const }));
     return fetchedGenres ?? [];
   }, [allGenresProp, fetchedGenres]);
 
   const tagsList = useMemo(() => {
     if (allTagsProp && allTagsProp.length > 0)
-      return allTagsProp.map((g) => ({ id: g.id, name: g.name, type: "tag" as const }));
+      return allTagsProp.map((g) => ({ id: String(g.id), name: g.name, type: 'tag' as const }));
     return fetchedTags ?? [];
   }, [allTagsProp, fetchedTags]);
 
@@ -179,7 +156,7 @@ export default function FiltersPanel({
           <Filter className="size-4" aria-hidden />
           <span className="font-medium">Filtros</span>
         </div>
-        <ChevronDown className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`size-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence initial={false}>
@@ -187,15 +164,17 @@ export default function FiltersPanel({
           <motion.div
             id="filters-panel-content"
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
+            animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ type: "spring", duration: 0.35 }}
+            transition={{ type: 'spring', duration: 0.35 }}
             className="filters-panel-content"
-            style={{ overflow: "hidden" }}
+            style={{ overflow: 'hidden' }}
           >
             {/* Autor */}
             <div>
-              <label htmlFor="filters-author" className="filters-panel-label">Autor</label>
+              <label htmlFor="filters-author" className="filters-panel-label">
+                Autor
+              </label>
               <input
                 id="filters-author"
                 value={author}
@@ -208,20 +187,18 @@ export default function FiltersPanel({
 
             {/* Selected chips (show names, not IDs) */}
             <div className="filters-selected">
-              {/* Géneros seleccionados */}
               {Array.from(selectedGenresSet).length > 0 && (
                 <div className="filters-selected-group">
                   <div className="filters-selected-title">Géneros seleccionados</div>
                   <div className="filters-selected-chips">
-                    {Array.from(selectedGenresSet).map((id, idx) => {
+                    {Array.from(selectedGenresSet).map((id) => {
                       const label = getNameById(id, genresList);
-                      // key robusta: combina tipo + id + index fallback
                       return (
                         <Chip
-                          key={`selected-genre-${id}-${idx}`}
+                          key={`selected-genre-${String(id)}`}
                           label={label}
-                          active={true}
-                          onClick={() => handleToggleGenre(id)}
+                          active
+                          onClick={() => handleToggleGenre(String(id))}
                         />
                       );
                     })}
@@ -229,19 +206,18 @@ export default function FiltersPanel({
                 </div>
               )}
 
-              {/* Etiquetas seleccionadas */}
               {Array.from(selectedTagsSet).length > 0 && (
                 <div className="filters-selected-group">
                   <div className="filters-selected-title">Etiquetas seleccionadas</div>
                   <div className="filters-selected-chips">
-                    {Array.from(selectedTagsSet).map((id, idx) => {
+                    {Array.from(selectedTagsSet).map((id) => {
                       const label = getNameById(id, tagsList);
                       return (
                         <Chip
-                          key={`selected-tag-${id}-${idx}`}
+                          key={`selected-tag-${String(id)}`}
                           label={label}
-                          active={true}
-                          onClick={() => handleToggleTag(id)}
+                          active
+                          onClick={() => handleToggleTag(String(id))}
                         />
                       );
                     })}
@@ -250,26 +226,25 @@ export default function FiltersPanel({
               )}
             </div>
 
-            {/* Géneros (lista completa, si no hay genreFromUrl) */}
+            {/* Géneros */}
             {!genreFromUrl ? (
               <div>
                 <div className="filters-panel-section-title">Géneros</div>
 
-                {loadingGenres ? (
-                  <div> Cargando géneros… </div>
-                ) : errorGenres ? (
-                  <div style={{ color: "crimson" }}>Error géneros: {errorGenres}</div>
-                ) : (!genresList || genresList.length === 0) ? (
+                {loading ? (
+                  <div> Cargando… </div>
+                ) : error ? (
+                  <div style={{ color: 'crimson' }}>Error: {error}</div>
+                ) : genresList.length === 0 ? (
                   <div>No hay géneros</div>
                 ) : (
                   <div className="filters-panel-chips" role="list" aria-label="Géneros">
-                    {genresList.map((g, idx) => (
-                      // key robusta con tipo + id + index fallback
-                      <div role="listitem" key={`genre-${g.id ?? g.name}-${idx}`}>
+                    {genresList.map((g) => (
+                      <div role="listitem" key={`genre-${String(g.id)}`}>
                         <Chip
                           label={g.name}
-                          active={selectedGenresSet.has(g.id)}
-                          onClick={() => handleToggleGenre(g.id)}
+                          active={selectedGenresSet.has(String(g.id))}
+                          onClick={() => handleToggleGenre(String(g.id))}
                         />
                       </div>
                     ))}
@@ -280,7 +255,7 @@ export default function FiltersPanel({
               <div>
                 <div className="filters-panel-section-title">Género</div>
                 <div className="filters-panel-chips">
-                  <Chip label={genreFromUrl.name} active={true} onClick={() => { /* opcional: permitir quitar */ }} />
+                  <Chip label={genreFromUrl.name} active onClick={() => {}} />
                 </div>
               </div>
             )}
@@ -289,17 +264,21 @@ export default function FiltersPanel({
             <div>
               <div className="filters-panel-section-title">Etiquetas</div>
 
-              {loadingTags ? (
-                <div> Cargando etiquetas… </div>
-              ) : errorTags ? (
-                <div style={{ color: "crimson" }}>Error etiquetas: {errorTags}</div>
-              ) : (!tagsList || tagsList.length === 0) ? (
+              {loading ? (
+                <div> Cargando… </div>
+              ) : error ? (
+                <div style={{ color: 'crimson' }}>Error: {error}</div>
+              ) : tagsList.length === 0 ? (
                 <div>No hay etiquetas</div>
               ) : (
                 <div className="filters-panel-chips" role="list" aria-label="Etiquetas">
-                  {tagsList.map((t, idx) => (
-                    <div role="listitem" key={`tag-${t.id ?? t.name}-${idx}`}>
-                      <Chip label={t.name} active={selectedTagsSet.has(t.id)} onClick={() => handleToggleTag(t.id)} />
+                  {tagsList.map((t) => (
+                    <div role="listitem" key={`tag-${String(t.id)}`}>
+                      <Chip
+                        label={t.name}
+                        active={selectedTagsSet.has(String(t.id))}
+                        onClick={() => handleToggleTag(String(t.id))}
+                      />
                     </div>
                   ))}
                 </div>
