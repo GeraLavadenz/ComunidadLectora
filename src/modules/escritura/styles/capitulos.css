@@ -92,3 +92,14 @@
 .save{ background: linear-gradient(90deg, var(--ok), #2dbf93); color: var(--bg); border-color: var(--ok) }
 .cancel{ background: transparent; border-color: var(--stroke); color: var(--muted) }
 .cancel:hover{ background: rgba(255,176,32,.1); color: var(--warn) }
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #ffffff80;
+  border-top-color: white;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

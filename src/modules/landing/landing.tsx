@@ -6,6 +6,8 @@ import BookGallerySection from './components/BookGallerySection';
 import BookShelvesSection from './components/BookShelvesSection';
 import ComentSection from './components/comentSection';
 
+
+
 const Landing: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
@@ -17,6 +19,7 @@ const Landing: React.FC = () => {
         <ComentSection />
       </main>
       <Footer />
+     
     </div>
   );
 };

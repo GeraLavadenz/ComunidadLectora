@@ -1,88 +1,42 @@
 // src/services/auth.ts
-import { auth, db } from "@/lib/firebase";
-import {
-  createUserWithEmailAndPassword,
-  updateProfile,
-  signInWithPopup,
-  GoogleAuthProvider,
-  fetchSignInMethodsForEmail,
-  linkWithCredential,
-  User,
-} from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { createBrowserClient } from '@supabase/ssr'
 
-export type NewUserInput = {
-  name: string;
-  email: string;
-  password: string;
-  role?: "reader" | "author" | "moderator" | "admin";
-};
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
-export async function registerUser(input: NewUserInput): Promise<User> {
-  const { name, email, password, role = "reader" } = input;
+// src/services/auth.ts → solo esta función
+export async function signInWithGoogle(role?: 'reader' | 'author') {
+  if (role) {
+    localStorage.setItem('preferred_role', role)
+  }
 
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
-  if (name) await updateProfile(cred.user, { displayName: name });
+  // ESTA ES LA ÚNICA URL QUE FUNCIONA CON SUPABASE EN 2025
+  const supabaseUrl = 'https://qiolmvlqilnxqrbrkzux.supabase.co'
+  const redirectUrl = `${window.location.origin}/auth/callback`
 
-  await setDoc(
-    doc(db, "users", cred.user.uid),
-    {
-      uid: cred.user.uid,
-      displayName: name,
-      email,
-      role,
-      photoURL: cred.user.photoURL ?? null,
-      createdAt: serverTimestamp(),
-      status: "active",
-    },
-    { merge: true }
-  );
+  const authUrl = new URL(`${supabaseUrl}/auth/v1/authorize`)
+  authUrl.searchParams.append('provider', 'google')
+  authUrl.searchParams.append('redirect_to', redirectUrl)
 
-  return cred.user;
+  // Redirigimos manualmente a la URL que Supabase genera (pero limpia)
+  window.location.href = authUrl.toString()
 }
 
-/** Sign-in/up con Google: crea/actualiza perfil en Firestore. */
-export async function signInWithGoogle(defaultRole: NewUserInput["role"] = "reader") {
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: "select_account" });
-
-  try {
-    const cred = await signInWithPopup(auth, provider);
-    const u = cred.user;
-
-    // Crea/actualiza perfil (merge para no pisar campos existentes)
-    await setDoc(
-      doc(db, "users", u.uid),
-      {
-        uid: u.uid,
-        displayName: u.displayName ?? "",
-        email: u.email ?? "",
-        role: defaultRole,
-        photoURL: u.photoURL ?? null,
-        createdAt: serverTimestamp(),
-        status: "active",
-        provider: "google",
-      },
-      { merge: true }
-    );
-    return u;
-    } catch (err: unknown) {
-      const error = err as { code?: string; customData?: { email?: string } };
-      // Caso común: cuenta existe con otro proveedor
-      if (error?.code === "auth/account-exists-with-different-credential" && error?.customData?.email) {
-        const email: string = error.customData.email;
-        const methods = await fetchSignInMethodsForEmail(auth, email);
-        // Sugerencia mínima: mostrar mensaje claro
-        throw new Error(
-          methods.includes("password")
-            ? "Ese correo ya existe con contraseña. Inicia sesión con email/contraseña y luego vincula Google en tu perfil."
-            : "Ese correo ya existe con otro proveedor. Inicia con el proveedor original."
-        );
-        // (Opcional avanzado) Podrías implementar linking con credencial pendiente:
-        // const pendingCred = GoogleAuthProvider.credentialFromError(err);
-        // const user = await signInWith<otro proveedor>...
-        // await linkWithCredential(user, pendingCred!)
-      }
-      throw err;
-    }
+// registerUser modificado para auto-login sin confirmación
+export async function registerUser(data: {
+  name: string
+  email: string
+  password: string
+  role: 'reader' | 'author'
+}) {
+  const { error } = await supabase.auth.signUp({
+    email: data.email,
+    password: data.password,
+    options: {
+      data: { name: data.name, role: data.role },
+    },
+  })
+  if (error) throw error
 }

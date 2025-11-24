@@ -1,6 +1,6 @@
 import Header from "@/components/header/header";
 import Footer from "@/components/footer/footer";
-import Capitulos from "../../../../modules/escritura/capitulos";
+import Capitulos from "../../../../modules/escritura/pages/capitulos";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

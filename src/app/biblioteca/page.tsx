@@ -4,17 +4,18 @@ import Footer from '@/components/footer/footer'
 import Biblioteca from '../../modules/biblioteca/biblioteca'
 
 interface PageProps {
-  searchParams?: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-export default function Page({ searchParams }: PageProps) {
+export default async function Page({ searchParams }: PageProps) {
+  const params = await searchParams
   let genre: string | null = null
 
-  if (searchParams && searchParams.genre) {
-    if (Array.isArray(searchParams.genre)) {
-      genre = searchParams.genre[0]
+  if (params && params.genre) {
+    if (Array.isArray(params.genre)) {
+      genre = params.genre[0]
     } else {
-      genre = searchParams.genre
+      genre = params.genre
     }
   }
 
