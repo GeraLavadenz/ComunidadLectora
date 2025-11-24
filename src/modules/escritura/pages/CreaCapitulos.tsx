@@ -1,134 +1,135 @@
+// src/modules/escritura/pages/newChapter.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import supabase from "@/lib/supabaseClient";
-import "../styles/capitulos.css";
 
-export default function NewChapterPage({ params }: { params?: { id?: string } }) {
-  const hookParams = useParams();
+export default function NewChapterFromModules({ storyId }: { storyId?: string }) {
   const router = useRouter();
-
-  // resolver storyId robustamente
-  const storyId = (() => {
-    if (params && params.id) return params.id;
-    if (hookParams && (hookParams as any).id) return (hookParams as any).id;
-    if (typeof window !== "undefined") {
-      const parts = window.location.pathname.split("/").filter(Boolean);
-      const idx = parts.lastIndexOf("capitulos");
-      if (idx >= 0 && parts.length > idx + 1) return parts[idx + 1];
-      return parts[parts.length - 2] || parts[parts.length - 1];
-    }
-    return undefined;
-  })();
-
-  const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [title, setTitle] = useState("");
-  const [summary, setSummary] = useState("");
-  const [content, setContent] = useState("");
-  const [isPublished, setIsPublished] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [storyTitle, setStoryTitle] = useState("");
+  const [chapterTitle, setChapterTitle] = useState("");
+  const [chapterContent, setChapterContent] = useState("");
+  const [publishNow, setPublishNow] = useState(false);
+  const [nextNumber, setNextNumber] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!storyId) {
-      // no storyId -> redirect back to list
-      router.push("/escritura/capitulos");
-    }
+    if (!storyId) return;
+    loadMeta();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyId]);
 
-  async function handleCreate(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    if (!storyId) {
-      alert("ID de historia no encontrado.");
-      return;
-    }
-    setCreating(true);
+  async function loadMeta() {
     try {
-      setLoading(true);
-      // calcular next chapter_number desde DB para evitar race conditions simples
-      const { data: maxRes, error: maxErr } = await supabase
-        .from("chapters")
-        .select("chapter_number")
-        .eq("story_id", storyId)
-        .order("chapter_number", { ascending: false })
-        .limit(1)
+      const { data, error } = await supabase
+        .from("stories")
+        .select("id, title, chapters(id, chapter_number)")
+        .eq("id", storyId)
         .maybeSingle();
 
-      if (maxErr) throw maxErr;
-      const currentMax = maxRes?.chapter_number ?? 0;
-      const nextNumber = (typeof currentMax === "number" ? currentMax : parseInt(String(currentMax || "0"), 10)) + 1;
+      if (error) throw error;
+      if (data) {
+        setStoryTitle(data.title || "");
+        const chs = data.chapters || [];
+        const max = chs.reduce((acc: number, c: any) => Math.max(acc, c.chapter_number ?? 0), 0);
+        setNextNumber(max + 1);
+        setChapterTitle(`Capítulo ${max + 1}`);
+      } else {
+        setNextNumber(1);
+        setChapterTitle("Capítulo 1");
+      }
+    } catch (e) {
+      console.error("loadMeta error", e);
+    }
+  }
 
+  async function handleSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (!storyId) return alert("ID de historia no encontrado");
+    if (!chapterTitle.trim()) return alert("El título no puede estar vacío");
+    setSaving(true);
+    try {
       const payload = {
         story_id: storyId,
-        title: title || `Capítulo ${nextNumber}`,
-        summary: summary || "",
-        content: content || "",
-        chapter_number: nextNumber,
-        is_published: isPublished,
+        title: chapterTitle,
+        content: chapterContent || "",
+        chapter_number: nextNumber ?? 1,
+        is_published: publishNow,
       };
-
       const { data, error } = await supabase.from("chapters").insert([payload]).select().single();
-
-      if (error) {
-        console.error("Error creando capítulo:", error);
-        alert("Error creando capítulo: " + (error?.message ?? JSON.stringify(error)));
-        return;
-      }
-
-      alert("Capítulo creado correctamente.");
-      // redirige a la lista de capítulos de la historia
+      if (error) throw error;
+      // redirige a la lista de capítulos en tu ruta principal (igual que antes)
       router.push(`/escritura/capitulos/${storyId}`);
     } catch (err: any) {
-      console.error("create err", err);
+      console.error("create chapter error", err);
       alert("Error creando capítulo: " + (err?.message ?? JSON.stringify(err)));
     } finally {
-      setCreating(false);
-      setLoading(false);
+      setSaving(false);
     }
   }
 
   return (
     <main className="page">
-      <header className="hero">
-        <div className="heroContent">
-          <h1 className="title">Crear nuevo capítulo</h1>
-          <p className="subtitle">Historia: {storyId ?? "—"}</p>
+      <div className="formContainer">
+        <h2>Nuevo capítulo</h2>
+        <div className="metaList">
+          <div><strong>Historia:</strong> {storyTitle || "—"}</div>
+          <div><strong>Siguiente número:</strong> {nextNumber ?? "—"}</div>
         </div>
-      </header>
 
-      <section className="meta metaSection">
-        <article className="card formContainer">
-          <form onSubmit={handleCreate}>
-            <div className="formGroup">
-              <label>Título</label>
-              <input type="text" className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título del capítulo" />
+        <form onSubmit={handleSubmit}>
+          <div className="formGroup">
+            <label>Título</label>
+            <input className="input" value={chapterTitle} onChange={(e) => setChapterTitle(e.target.value)} />
+          </div>
+
+          <div className="formGroup">
+            <label>Contenido / Resumen</label>
+            <textarea className="textarea" rows={8} value={chapterContent} onChange={(e) => setChapterContent(e.target.value)} />
+          </div>
+
+          <div className="formActions">
+            <label className="switch">
+              <input type="checkbox" checked={publishNow} onChange={(e) => setPublishNow(e.target.checked)} />
+              <span>Publicar ahora</span>
+            </label>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" className="btn cancel" onClick={() => router.push(`/escritura/capitulos/${storyId}`)}>Cancelar</button>
+              <button type="submit" className="btn create" disabled={saving}>{saving ? "Creando..." : "Crear capítulo"}</button>
             </div>
-
-            <div className="formGroup">
-              <label>Resumen (opcional)</label>
-              <textarea className="textarea" rows={4} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Resumen breve" />
-            </div>
-
-            <div className="formGroup">
-              <label>Contenido</label>
-              <textarea className="textarea" rows={10} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Contenido completo del capítulo" />
-            </div>
-
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }} className="formActions">
-              <label className="switch">
-                <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} />
-                <span>Publicar ahora</span>
-              </label>
-
-              <div style={{ marginLeft: "auto" }}>
-                <button type="button" className="btn cancel" onClick={() => router.push(`/escritura/capitulos/${storyId}`)}>Cancelar</button>
-                <button type="submit" className="btn create" disabled={creating}>{creating ? "Creando..." : "Crear capítulo"}</button>
-              </div>
-            </div>
-          </form>
-        </article>
-      </section>
+          </div>
+        </form>
+      </div>
     </main>
+  );
+}
+// Chip editor UI (igual)
+function ChipEditor({ items = [], placeholder, onAdd, onRemove, badgeClass = "", ariaLabel = "" }: any) {
+  const [value, setValue] = useState("");
+
+  function onKeyDown(e: any) {
+    if (e.key === "Enter") {
+      const v = value.trim();
+      if (v) {
+        onAdd(v);
+        setValue("");
+      }
+    }
+  }
+
+  return (
+    <div aria-label={ariaLabel}>
+      <div className="chips">
+        {items.map((it: string) => (
+          <span key={it} className={`chip ${badgeClass}`}>
+            {it}
+            <button className="chipRemove" title={`Eliminar ${it}`} onClick={() => onRemove(it)} aria-label={`Eliminar ${it}`}>×</button>
+          </span>
+        ))}
+      </div>
+      <input className="chipInput" placeholder={placeholder} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={onKeyDown} />
+    </div>
   );
 }
