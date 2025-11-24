@@ -124,7 +124,7 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
               id="title"
               type="text"
               value={editedChapter.title}
-              onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, title: e.target.value } : prev)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedChapter((prev) => prev ? { ...prev, title: e.target.value } : prev)}
               className="input input"
             />
           </div>
@@ -135,7 +135,7 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
             <textarea
               id="summary"
               value={editedChapter.summary}
-              onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, summary: e.target.value } : prev)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedChapter((prev) => prev ? { ...prev, summary: e.target.value } : prev)}
               className="input textarea"
             />
           </div>
@@ -147,13 +147,13 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
               <div className="comparisonContainer">
                 <div className="comparisonColumn">
                   <h4 className="comparisonHeader comparisonHeaderOriginal">Texto Original</h4>
-                  <textarea
-                    id="content"
-                    value={editedChapter.content || ""}
-                    onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, content: e.target.value } : prev)}
-                    className="input contentTextarea"
-                    placeholder="Escribe el contenido completo del capítulo aquí..."
-                  />
+              <textarea
+                id="content"
+                value={editedChapter.content || ""}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedChapter((prev) => prev ? { ...prev, content: e.target.value } : prev)}
+                className="input contentTextarea"
+                placeholder="Escribe el contenido completo del capítulo aquí..."
+              />
                 </div>
                 <div className="comparisonColumn">
                   <h4 className="comparisonHeader comparisonHeaderCorrected">Corregido por IA</h4>
@@ -165,13 +165,13 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
                 </div>
               </div>
             ) : (
-              <textarea
-                id="content"
-                value={editedChapter.content || ""}
-                onChange={(e) => setEditedChapter((prev) => prev ? { ...prev, content: e.target.value } : prev)}
-                className="input contentTextarea"
-                placeholder="Escribe el contenido completo del capítulo aquí..."
-              />
+                  <textarea
+                    id="content"
+                    value={editedChapter.content || ""}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedChapter((prev) => prev ? { ...prev, content: e.target.value } : prev)}
+                    className="input contentTextarea"
+                    placeholder="Escribe el contenido completo del capítulo aquí..."
+                  />
             )}
             {showComparison && (
               <div className="correctionButtons">

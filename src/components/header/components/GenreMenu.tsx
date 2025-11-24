@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
-import { genres } from '../data';
+import { genres, MenuItem } from '../data';
 import styles from './styles/GenreMenu.module.css';
 
 const GenreMenu: React.FC = () => {
@@ -25,7 +25,7 @@ const GenreMenu: React.FC = () => {
             <h3 className={styles.dropdownTitle}>Explora por Género</h3>
           </div>
           <div className={styles.dropdownGrid}>
-            {genres.map((item) => (
+            {genres.map((item: MenuItem) => (
               <Link
                 key={item.title}
                 href={item.href}

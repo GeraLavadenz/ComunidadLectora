@@ -26,10 +26,7 @@ import styles from './styles/header.module.css';
 // 👇 Asegúrate de tener este hook en tu AuthContext de Firebase
 import { useAuth } from '@/context/AuthContext';
 
-interface MenuItem {
-  title: string;
-  href: string;
-}
+import { MenuItem } from './data';
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth(); // <- estado de Firebase
