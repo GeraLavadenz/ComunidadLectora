@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import supabase from '@/lib/supabaseClient';
 import { Plus } from 'lucide-react';
 import "../styles/capitulos.css";
-import { stories } from "./storiesData"; // solo para demo/local
+
 
 // helpers (igual que antes)
 function normalizeStr(s: any) {

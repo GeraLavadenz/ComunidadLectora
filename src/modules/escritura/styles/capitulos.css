@@ -183,3 +183,43 @@
   background: var(--surface);
   color: var(--text);
 }
+
+/* --- variables y utilidades --- */
+.coverContainer, .coverSection { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.coverImage { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid var(--stroke); }
+.coverPlaceholder { width: 96px; height: 96px; border-radius: 8px; display:flex; align-items:center; justify-content:center; color:var(--muted); border:1px dashed var(--stroke); background: linear-gradient(180deg,var(--surface),var(--surface-2)); }
+
+/* botón lápiz (quitamos inline marginLeft) */
+.editBtn { margin-left: 12px; padding: 6px 8px; border-radius: 8px; font-size: 0.95rem; }
+
+/* descripción editor */
+.descEditorWrap { margin-bottom: 12px; }
+.descEditorActions { margin-top: 8px; display:flex; gap:8px; }
+
+/* publication card: progress */
+.progressBar { height: 12px; border-radius: 999px; background: #091120; border: 1px solid var(--stroke); overflow: hidden; width: 100%; }
+.progressFill { height: 100%; background: linear-gradient(90deg, var(--brand), var(--brand-2)); width: 0%; transition: width .6s ease; }
+
+/* cover controls */
+.coverControls { display:flex; gap:8px; align-items:center; margin-top:8px; }
+.coverInput { min-width: 180px; }
+
+/* chips layout */
+.tagsSection { margin-top: 8px; }
+.chipsList { display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 8px; }
+.suggestionsList { margin-top: 8px; display:flex; gap:8px; flex-wrap:wrap; }
+.suggestionBtn { border-radius: 10px; padding:6px 10px; background:transparent; border:1px solid var(--stroke); cursor:pointer; }
+
+/* toolbar tweaks */
+.toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+.searchInput { min-width:260px; }
+
+/* chapter card minor tweaks */
+.chapterInfo { display:flex; gap:10px; align-items:center; }
+.chapterStatus { text-align:right; }
+
+/* responsive small screens */
+@media (max-width:860px) {
+  .heroContent { padding: 12px; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+}

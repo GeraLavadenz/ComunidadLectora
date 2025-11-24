@@ -3,10 +3,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import supabase from "../../../lib/supabaseClient";
-import { uploadImageUnsigned } from "../../../lib/cloudinaryClient"; // crea esta util
+import { uploadImageUnsigned } from "../../../lib/cloudinaryClient";
 import "../styles/capitulos.css";
 
-const STORAGE_BUCKET = "covers"; // ya no se usa storage, pero dejo la const por compatibilidad
 console.log("cloud:", process.env.NEXT_PUBLIC_CLOUDINARY_CLOUDNAME, "preset:", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
 
 type ChapterDB = {
@@ -60,13 +59,14 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   const [tagSuggestions, setTagSuggestions] = useState<TagRow[]>([]);
   const suggestionAbortRef = useRef<number | null>(null);
 
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [newChapterTitle, setNewChapterTitle] = useState("");
-  const [newChapterContent, setNewChapterContent] = useState("");
-  const [newIsPublished, setNewIsPublished] = useState(false);
-
   const [uploadingCover, setUploadingCover] = useState(false);
+
+  // description editing
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descDraft, setDescDraft] = useState("");
+
+  // progress bar ref (ahora ajustamos ancho desde JS, JSX sin inline styles)
+  const progressFillRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!storyId) return;
@@ -90,7 +90,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   async function loadStory() {
     setLoading(true);
     try {
-      // Traemos story + chapters (sin embed de profiles para evitar ambigüedad)
+      // Traemos story + chapters
       const { data, error } = await supabase
         .from("stories")
         .select(
@@ -121,16 +121,25 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       if (error) throw error;
       const storyData = data;
 
-      // Obtener username/display_name por separado
+      // Obtener username/display_name por separado (select * para evitar 400)
       let authorUsername = "—";
       try {
         if (storyData?.author_id) {
-          const { data: prof } = await supabase
+          const { data: prof, error: pErr } = await supabase
             .from("profiles")
-            .select("username,full_name")
+            .select("*")
             .eq("id", storyData.author_id)
             .maybeSingle();
-          if (prof) authorUsername = prof.username || prof.full_name || "—";
+
+          if (!pErr && prof) {
+            authorUsername =
+              prof.username ??
+              prof.full_name ??
+              prof.name ??
+              prof.display_name ??
+              prof.email ??
+              "—";
+          }
         }
       } catch (e) {
         console.warn("Error fetching profile", e);
@@ -178,6 +187,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     }
   }
 
+  // suggestions
   useEffect(() => {
     if (genreInput.trim() === "") {
       setGenreSuggestions([]);
@@ -202,17 +212,15 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     }
     suggestionAbortRef.current = window.setTimeout(async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("tags")
           .select("*")
           .ilike("name", `%${q}%`)
           .eq("type", type)
           .limit(8);
 
-        if (!error && data) {
-          if (type === "genre") setGenreSuggestions(data);
-          else setTagSuggestions(data);
-        }
+        if (type === "genre") setGenreSuggestions(data || []);
+        else setTagSuggestions(data || []);
       } catch (e) {
         console.warn("suggestions err", e);
       }
@@ -303,54 +311,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     }
   }
 
-  async function createChapter(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    if (!storyId) return;
-    setCreating(true);
-    try {
-      const nextNumber = (chapters.reduce((acc, c) => Math.max(acc, c.chapter_number), 0) || 0) + 1;
-      const payload = {
-        story_id: storyId,
-        title: newChapterTitle || `Capítulo ${nextNumber}`,
-        content: newChapterContent || "",
-        chapter_number: nextNumber,
-        is_published: newIsPublished,
-      };
-      const { data, error } = await supabase.from("chapters").insert([payload]).select().single();
-
-      if (error) {
-        console.error("Error creando capítulo ", error);
-        alert("Error creando capítulo: " + (error?.message ?? JSON.stringify(error)));
-        return;
-      }
-
-      const created: ChapterDB = {
-        id: data.id,
-        story_id: data.story_id,
-        title: data.title,
-        content: data.content,
-        chapter_number: data.chapter_number,
-        is_published: !!data.is_published,
-        published_at: data.published_at ?? null,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-      };
-
-      setChapters((prev) => [...prev, created].sort((a, b) => a.chapter_number - b.chapter_number));
-      setShowCreateModal(false);
-      setNewChapterTitle("");
-      setNewChapterContent("");
-      setNewIsPublished(false);
-      alert("Capítulo creado");
-    } catch (err: any) {
-      console.error("createChapter err", err);
-      alert("Error creando capítulo: " + (err?.message ?? JSON.stringify(err)));
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  // Cloudinary upload handler (uses util uploadImageUnsigned)
+  // Cloudinary upload handler
   async function handleCoverFileUpload(file: File | null) {
     if (!file || !storyId) return;
     setUploadingCover(true);
@@ -359,11 +320,9 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       const url = res.url || res.secure_url || res.raw?.secure_url;
       if (!url) throw new Error("No se obtuvo URL de Cloudinary");
 
-      // guardar enlace en la BD
       const { error } = await supabase.from("stories").update({ cover_url: url }).eq("id", storyId);
       if (error) throw error;
 
-      // actualizar estado local
       setStory((s: any) => ({ ...s, cover_url: url }));
       alert("Portada actualizada");
     } catch (err: any) {
@@ -374,7 +333,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     }
   }
 
-  // Also allow manual URL paste (edits cover_url directly)
+  // manual cover URL
   async function handleCoverUrlChange(newUrl: string) {
     if (!storyId) return;
     setStory((s: any) => ({ ...s, cover_url: newUrl }));
@@ -384,6 +343,32 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     } catch (e) {
       console.warn(e);
     }
+  }
+
+  // description editing handlers
+  function startEditDescription() {
+    setDescDraft(story?.description ?? "");
+    setEditingDescription(true);
+  }
+  async function saveDescription() {
+    if (!storyId) {
+      alert("ID de historia no encontrado.");
+      return;
+    }
+    try {
+      const { error } = await supabase.from("stories").update({ description: descDraft, updated_at: new Date().toISOString() }).eq("id", storyId);
+      if (error) throw error;
+      setStory((s: any) => ({ ...s, description: descDraft }));
+      setEditingDescription(false);
+      alert("Descripción actualizada");
+    } catch (e: any) {
+      console.error("Error guardando descripción", e);
+      alert("Error guardando descripción: " + (e?.message ?? JSON.stringify(e)));
+    }
+  }
+  function cancelEditDescription() {
+    setDescDraft("");
+    setEditingDescription(false);
   }
 
   const filteredChapters = chapters
@@ -398,12 +383,22 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   const publishedCount = chapters.filter((c) => c.is_published).length;
   const progressPercent = chapters.length ? Math.round((publishedCount / chapters.length) * 100) : 0;
 
+  // actualizar ancho de la barra de progreso sin estilos inline en JSX
+  useEffect(() => {
+    if (progressFillRef.current) {
+      progressFillRef.current.style.width = `${progressPercent}%`;
+    }
+  }, [progressPercent]);
+
   return (
     <main className="page">
       <header className="hero">
         <div className="heroContent">
           <h1 className="title">{story?.title ?? "Historia"}</h1>
-          <p className="subtitle">por {story?.authorUsername ?? "—"}</p>
+          <p className="subtitle">
+            por {story?.authorUsername ?? "—"}
+            <button className="btnGhost editBtn" title="Editar descripción" onClick={startEditDescription} aria-label="Editar descripción">✎</button>
+          </p>
 
           <div className="badges">
             {genres.map((g) => (
@@ -419,7 +414,21 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       <section className="meta metaSection">
         <article className="card cardArticle">
           <h3>Descripción</h3>
-          <p className="description">{story?.description}</p>
+
+          {!editingDescription ? (
+            <>
+              <p className="description">{story?.description || "—"}</p>
+            </>
+          ) : (
+            <div className="descEditorWrap">
+              <textarea className="textarea" rows={4} value={descDraft} onChange={(e) => setDescDraft(e.target.value)} />
+              <div className="descEditorActions">
+                <button className="btn create" onClick={saveDescription}>Guardar</button>
+                <button className="btn cancel" onClick={cancelEditDescription}>Cancelar</button>
+              </div>
+            </div>
+          )}
+
           <ul className="metaList">
             <li><span>Creado:</span> {story?.created_at ? new Date(story.created_at).toLocaleDateString() : "—"}</li>
             <li><span>Actualizado:</span> {story?.updated_at ? new Date(story.updated_at).toLocaleDateString() : "—"}</li>
@@ -488,11 +497,10 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
         <aside className="card publicationCard">
           <h4>Publicación</h4>
           <div className="progressBar">
-            <div className="progressFill" style={{ width: `${progressPercent}%` }}></div>
+            <div className="progressFill" ref={progressFillRef} />
           </div>
           <div className="progressText">{publishedCount} publicados de {chapters.length} ({progressPercent}%)</div>
 
-          {/* Portada dentro del card de publicación */}
           <div className="coverSection">
             <h4 className="coverTitle">Portada</h4>
 
@@ -512,14 +520,6 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
                   hidden
                 />
               </label>
-
-              {/*<input
-                type="text"
-                className="input coverInput"
-                placeholder="Pega aquí la URL generada por Cloudinary"
-                value={story?.cover_url || ""}
-                onChange={(e) => handleCoverUrlChange(e.target.value)}
-              />*/}
             </div>
           </div>
         </aside>
@@ -537,7 +537,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
           <option value="title">Título</option>
         </select>
 
-        <button className="btn create" onClick={() => setShowCreateModal(true)}>+ Nuevo Capítulo</button>
+        <button className="btn create" onClick={() => router.push(`/escritura/capitulos/${storyId}/new`)}>+ Nuevo Capítulo</button>
       </div>
 
       <section className="chapterGrid">
@@ -568,37 +568,6 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
           </article>
         ))}
       </section>
-
-      {showCreateModal && (
-        <div className="modalOverlay">
-          <div className="modalBox">
-            <h3>Crear Nuevo Capítulo</h3>
-            <form onSubmit={createChapter}>
-              <div className="formGroup">
-                <label>Título</label>
-                <input className="input" type="text" value={newChapterTitle} onChange={(e) => setNewChapterTitle(e.target.value)} />
-              </div>
-
-              <div className="formGroup">
-                <label>Resumen / contenido</label>
-                <textarea className="textarea" rows={8} value={newChapterContent} onChange={(e) => setNewChapterContent(e.target.value)} />
-              </div>
-
-              <div className="formActionsRow">
-                <label className="switch">
-                  <input type="checkbox" checked={newIsPublished} onChange={(e) => setNewIsPublished(e.target.checked)} />
-                  <span>Publicar ahora</span>
-                </label>
-
-                <div className="formBtns">
-                  <button type="button" className="btn cancel" onClick={() => setShowCreateModal(false)}>Cancelar</button>
-                  <button type="submit" className="btn create" disabled={creating}>{creating ? "Creando..." : "Crear capítulo"}</button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
