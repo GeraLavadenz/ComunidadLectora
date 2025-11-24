@@ -3,9 +3,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import supabase from "../../../lib/supabaseClient";
+import { uploadImageUnsigned } from "../../../lib/cloudinaryClient"; // crea esta util
 import "../styles/capitulos.css";
 
-const STORAGE_BUCKET = "covers";
+const STORAGE_BUCKET = "covers"; // ya no se usa storage, pero dejo la const por compatibilidad
+console.log("cloud:", process.env.NEXT_PUBLIC_CLOUDINARY_CLOUDNAME, "preset:", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
 
 type ChapterDB = {
   id: string;
@@ -69,14 +71,17 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   useEffect(() => {
     if (!storyId) return;
     loadStory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyId]);
 
   if (!storyId) {
     return (
       <main className="page">
         <header className="hero">
-          <h1 className="title">Historia</h1>
-          <p className="subtitle">ID de historia no encontrado en la ruta.</p>
+          <div className="heroContent">
+            <h1 className="title">Historia</h1>
+            <p className="subtitle">ID de historia no encontrado en la ruta.</p>
+          </div>
         </header>
       </main>
     );
@@ -85,6 +90,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   async function loadStory() {
     setLoading(true);
     try {
+      // Traemos story + chapters (sin embed de profiles para evitar ambigüedad)
       const { data, error } = await supabase
         .from("stories")
         .select(
@@ -110,11 +116,12 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
         `
         )
         .eq("id", storyId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       const storyData = data;
 
+      // Obtener username/display_name por separado
       let authorUsername = "—";
       try {
         if (storyData?.author_id) {
@@ -125,7 +132,9 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
             .maybeSingle();
           if (prof) authorUsername = prof.username || prof.full_name || "—";
         }
-      } catch {}
+      } catch (e) {
+        console.warn("Error fetching profile", e);
+      }
 
       setStory({ ...storyData, authorUsername });
 
@@ -143,6 +152,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       chs.sort((a, b) => a.chapter_number - b.chapter_number);
       setChapters(chs);
 
+      // linked tags
       const { data: linked } = await supabase
         .from("story_tags")
         .select("tag_id, tags(id,name,type)")
@@ -151,35 +161,39 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       if (linked) {
         const g: TagRow[] = [];
         const t: TagRow[] = [];
-        linked.forEach((row) => {
-          const tag = row.tags;
-          if (!tag) return;
-          tag.type === "genre" ? g.push(tag) : t.push(tag);
-        });
+        for (const row of linked) {
+          const tag = row.tags ?? row;
+          if (!tag) continue;
+          if (tag.type === "genre") g.push(tag);
+          else t.push(tag);
+        }
         setGenres(g);
         setTags(t);
       }
-    } catch (err) {
-      alert("Error cargando historia");
+    } catch (err: any) {
+      console.error("Error cargando historia", err);
+      alert("Error cargando historia: " + (err?.message ?? JSON.stringify(err)));
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (!genreInput.trim()) {
+    if (genreInput.trim() === "") {
       setGenreSuggestions([]);
       return;
     }
     fetchTagSuggestions(genreInput.trim(), "genre");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genreInput]);
 
   useEffect(() => {
-    if (!tagInput.trim()) {
+    if (tagInput.trim() === "") {
       setTagSuggestions([]);
       return;
     }
     fetchTagSuggestions(tagInput.trim(), "tag");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tagInput]);
 
   async function fetchTagSuggestions(q: string, type: "genre" | "tag") {
@@ -187,15 +201,21 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       window.clearTimeout(suggestionAbortRef.current);
     }
     suggestionAbortRef.current = window.setTimeout(async () => {
-      const { data } = await supabase
-        .from("tags")
-        .select("*")
-        .ilike("name", `%${q}%`)
-        .eq("type", type)
-        .limit(8);
+      try {
+        const { data, error } = await supabase
+          .from("tags")
+          .select("*")
+          .ilike("name", `%${q}%`)
+          .eq("type", type)
+          .limit(8);
 
-      if (type === "genre") setGenreSuggestions(data || []);
-      else setTagSuggestions(data || []);
+        if (!error && data) {
+          if (type === "genre") setGenreSuggestions(data);
+          else setTagSuggestions(data);
+        }
+      } catch (e) {
+        console.warn("suggestions err", e);
+      }
     }, 220);
   }
 
@@ -208,17 +228,28 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     }
 
     setGenreInput("");
-    let tagRow: TagRow | null = null;
     const { data: existing } = await supabase.from("tags").select("*").ilike("name", trimmed).eq("type", "genre").limit(1);
-    tagRow = existing?.[0] ?? null;
+    let tagRow: TagRow | null = existing && existing[0] ? existing[0] : null;
 
-    if (!tagRow) {
-      const { data: ins } = await supabase.from("tags").insert([{ name: trimmed, type: "genre" }]).select().single();
-      tagRow = ins;
-    }
-    if (tagRow) {
-      await supabase.from("story_tags").insert([{ story_id: storyId, tag_id: tagRow.id }]);
-      setGenres((prev) => [...prev, tagRow!]);
+    try {
+      if (!tagRow) {
+        const { data: insData, error: insErr } = await supabase.from("tags").insert([{ name: trimmed, type: "genre" }]).select().single();
+        if (insErr) {
+          console.warn("create genre err", insErr);
+          const { data: re } = await supabase.from("tags").select("*").ilike("name", trimmed).eq("type", "genre").limit(1);
+          if (re && re[0]) tagRow = re[0];
+        } else {
+          tagRow = insData;
+        }
+      }
+
+      if (tagRow) {
+        await supabase.from("story_tags").insert([{ story_id: storyId, tag_id: tagRow.id }]);
+        setGenres((prev) => [...prev, tagRow!]);
+      }
+    } catch (e: any) {
+      console.error("handleAddGenreByName error", e);
+      alert("Error añadiendo género: " + (e?.message ?? JSON.stringify(e)));
     }
   }
 
@@ -229,41 +260,55 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       setTagInput("");
       return;
     }
-
     setTagInput("");
-    let tagRow: TagRow | null = null;
     const { data: existing } = await supabase.from("tags").select("*").ilike("name", trimmed).eq("type", "tag").limit(1);
-    tagRow = existing?.[0] ?? null;
+    let tagRow: TagRow | null = existing && existing[0] ? existing[0] : null;
 
-    if (!tagRow) {
-      const { data: ins } = await supabase.from("tags").insert([{ name: trimmed, type: "tag" }]).select().single();
-      tagRow = ins;
-    }
-    if (tagRow) {
-      await supabase.from("story_tags").insert([{ story_id: storyId, tag_id: tagRow.id }]);
-      setTags((prev) => [...prev, tagRow!]);
+    try {
+      if (!tagRow) {
+        const { data: insData, error: insErr } = await supabase.from("tags").insert([{ name: trimmed, type: "tag" }]).select().single();
+        if (insErr) {
+          console.warn("create tag err", insErr);
+          const { data: re } = await supabase.from("tags").select("*").ilike("name", trimmed).eq("type", "tag").limit(1);
+          if (re && re[0]) tagRow = re[0];
+        } else {
+          tagRow = insData;
+        }
+      }
+
+      if (tagRow) {
+        await supabase.from("story_tags").insert([{ story_id: storyId, tag_id: tagRow.id }]);
+        setTags((prev) => [...prev, tagRow!]);
+      }
+    } catch (e: any) {
+      console.error("handleAddTagByName error", e);
+      alert("Error añadiendo etiqueta: " + (e?.message ?? JSON.stringify(e)));
     }
   }
 
   async function handleRemoveGenre(id: string) {
-    await supabase.from("story_tags").delete().match({ story_id: storyId, tag_id: id });
-    setGenres((g) => g.filter((x) => x.id !== id));
+    try {
+      await supabase.from("story_tags").delete().match({ story_id: storyId, tag_id: id });
+      setGenres((g) => g.filter((x) => x.id !== id));
+    } catch (e) {
+      console.error(e);
+    }
   }
-
   async function handleRemoveTag(id: string) {
-    await supabase.from("story_tags").delete().match({ story_id: storyId, tag_id: id });
-    setTags((g) => g.filter((x) => x.id !== id));
+    try {
+      await supabase.from("story_tags").delete().match({ story_id: storyId, tag_id: id });
+      setTags((g) => g.filter((x) => x.id !== id));
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async function createChapter(e?: React.FormEvent) {
     if (e) e.preventDefault();
     if (!storyId) return;
-
     setCreating(true);
     try {
-      const nextNumber =
-        (chapters.reduce((acc, c) => Math.max(acc, c.chapter_number), 0) || 0) + 1;
-
+      const nextNumber = (chapters.reduce((acc, c) => Math.max(acc, c.chapter_number), 0) || 0) + 1;
       const payload = {
         story_id: storyId,
         title: newChapterTitle || `Capítulo ${nextNumber}`,
@@ -271,9 +316,13 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
         chapter_number: nextNumber,
         is_published: newIsPublished,
       };
-
       const { data, error } = await supabase.from("chapters").insert([payload]).select().single();
-      if (error) throw error;
+
+      if (error) {
+        console.error("Error creando capítulo ", error);
+        alert("Error creando capítulo: " + (error?.message ?? JSON.stringify(error)));
+        return;
+      }
 
       const created: ChapterDB = {
         id: data.id,
@@ -293,56 +342,61 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       setNewChapterContent("");
       setNewIsPublished(false);
       alert("Capítulo creado");
-    } catch {
-      alert("Error al crear capítulo");
+    } catch (err: any) {
+      console.error("createChapter err", err);
+      alert("Error creando capítulo: " + (err?.message ?? JSON.stringify(err)));
     } finally {
       setCreating(false);
     }
   }
 
-  async function handleCoverFile(file: File | null) {
+  // Cloudinary upload handler (uses util uploadImageUnsigned)
+  async function handleCoverFileUpload(file: File | null) {
     if (!file || !storyId) return;
     setUploadingCover(true);
     try {
-      const ext = file.name.split(".").pop();
-      const filename = `story-${storyId}-cover.${ext}`;
+      const res = await uploadImageUnsigned(file);
+      const url = res.url || res.secure_url || res.raw?.secure_url;
+      if (!url) throw new Error("No se obtuvo URL de Cloudinary");
 
-      const { error: upErr } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(filename, file, { upsert: true });
+      // guardar enlace en la BD
+      const { error } = await supabase.from("stories").update({ cover_url: url }).eq("id", storyId);
+      if (error) throw error;
 
-      if (upErr) throw upErr;
-
-      const { publicURL } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filename);
-
-      await supabase.from("stories").update({ cover_url: publicURL }).eq("id", storyId);
-
-      setStory((s: any) => ({ ...s, cover_url: publicURL }));
-    } catch {
-      alert("Error subiendo portada");
+      // actualizar estado local
+      setStory((s: any) => ({ ...s, cover_url: url }));
+      alert("Portada actualizada");
+    } catch (err: any) {
+      console.error("Error subiendo a Cloudinary", err);
+      alert("Error subiendo portada: " + (err?.message ?? JSON.stringify(err)));
     } finally {
       setUploadingCover(false);
+    }
+  }
+
+  // Also allow manual URL paste (edits cover_url directly)
+  async function handleCoverUrlChange(newUrl: string) {
+    if (!storyId) return;
+    setStory((s: any) => ({ ...s, cover_url: newUrl }));
+    try {
+      const { error } = await supabase.from("stories").update({ cover_url: newUrl }).eq("id", storyId);
+      if (error) console.warn("Error updating cover_url", error);
+    } catch (e) {
+      console.warn(e);
     }
   }
 
   const filteredChapters = chapters
     .filter((c) => {
       if (onlyPublished && !c.is_published) return false;
-      const q = query.toLowerCase().trim();
-      if (!q) return true;
-      return (
-        c.title.toLowerCase().includes(q) ||
-        (c.content || "").toLowerCase().includes(q) ||
-        (c.chapter_number + "").includes(q)
-      );
+      if (!query.trim()) return true;
+      const q = query.toLowerCase();
+      return c.title.toLowerCase().includes(q) || (c.content || "").toLowerCase().includes(q) || (c.chapter_number + "").includes(q);
     })
-    .sort((a, b) =>
-      sortBy === "number" ? a.chapter_number - b.chapter_number : a.title.localeCompare(b.title)
-    );
+    .sort((a, b) => (sortBy === "number" ? a.chapter_number - b.chapter_number : a.title.localeCompare(b.title)));
 
   const publishedCount = chapters.filter((c) => c.is_published).length;
-  const progressPercent =
-    chapters.length > 0 ? Math.round((publishedCount / chapters.length) * 100) : 0;
+  const progressPercent = chapters.length ? Math.round((publishedCount / chapters.length) * 100) : 0;
 
   return (
     <main className="page">
@@ -360,32 +414,18 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
             ))}
           </div>
         </div>
-
-        <div className="coverContainer">
-          {story?.cover_url ? (
-            <img src={story.cover_url} alt="cover" className="coverImage" />
-          ) : (
-            <div className="coverPlaceholder">Portada</div>
-          )}
-          <label className="btnGhost coverBtn">
-            {uploadingCover ? "Subiendo..." : "Cambiar portada"}
-            <input type="file" accept="image/*" onChange={(e) => handleCoverFile(e.target.files?.[0] || null)} hidden />
-          </label>
-        </div>
       </header>
 
       <section className="meta metaSection">
         <article className="card cardArticle">
           <h3>Descripción</h3>
           <p className="description">{story?.description}</p>
-
           <ul className="metaList">
             <li><span>Creado:</span> {story?.created_at ? new Date(story.created_at).toLocaleDateString() : "—"}</li>
             <li><span>Actualizado:</span> {story?.updated_at ? new Date(story.updated_at).toLocaleDateString() : "—"}</li>
             <li><span>Capítulos:</span> {chapters.length}</li>
           </ul>
 
-          {/* ======== GÉNEROS ======== */}
           <h4 className="editTitle">Géneros</h4>
           <div className="tagsSection">
             <div className="chipsList">
@@ -408,15 +448,12 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
             {genreSuggestions.length > 0 && (
               <div className="suggestionsList">
                 {genreSuggestions.map((s) => (
-                  <button key={s.id} className="suggestionBtn" onClick={() => handleAddGenreByName(s.name)}>
-                    {s.name}
-                  </button>
+                  <button key={s.id} className="suggestionBtn" onClick={() => handleAddGenreByName(s.name)}>{s.name}</button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* ======== ETIQUETAS ======== */}
           <h4 className="editTitle">Etiquetas</h4>
           <div className="tagsSection">
             <div className="chipsList">
@@ -439,17 +476,13 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
             {tagSuggestions.length > 0 && (
               <div className="suggestionsList">
                 {tagSuggestions.map((s) => (
-                  <button key={s.id} className="suggestionBtn" onClick={() => handleAddTagByName(s.name)}>
-                    #{s.name}
-                  </button>
+                  <button key={s.id} className="suggestionBtn" onClick={() => handleAddTagByName(s.name)}>#{s.name}</button>
                 ))}
               </div>
             )}
           </div>
 
-          <p className="note">
-            Puedes modificar géneros y etiquetas incluso si hay capítulos publicados.
-          </p>
+          <p className="note">Puedes modificar géneros y etiquetas incluso si hay capítulos publicados.</p>
         </article>
 
         <aside className="card publicationCard">
@@ -457,20 +490,43 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
           <div className="progressBar">
             <div className="progressFill" style={{ width: `${progressPercent}%` }}></div>
           </div>
-          <div className="progressText">
-            {publishedCount} publicados de {chapters.length} ({progressPercent}%)
+          <div className="progressText">{publishedCount} publicados de {chapters.length} ({progressPercent}%)</div>
+
+          {/* Portada dentro del card de publicación */}
+          <div className="coverSection">
+            <h4 className="coverTitle">Portada</h4>
+
+            {story?.cover_url ? (
+              <img src={story.cover_url} alt="cover" className="coverImage" />
+            ) : (
+              <div className="coverPlaceholder">Sin portada</div>
+            )}
+
+            <div className="coverControls">
+              <label className="btnGhost">
+                {uploadingCover ? "Subiendo..." : "Subir desde dispositivo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleCoverFileUpload(e.target.files?.[0] || null)}
+                  hidden
+                />
+              </label>
+
+              {/*<input
+                type="text"
+                className="input coverInput"
+                placeholder="Pega aquí la URL generada por Cloudinary"
+                value={story?.cover_url || ""}
+                onChange={(e) => handleCoverUrlChange(e.target.value)}
+              />*/}
+            </div>
           </div>
         </aside>
       </section>
 
       <div className="toolbar">
-        <input
-          className="input searchInput"
-          placeholder="Buscar por número, título o resumen..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-
+        <input className="input searchInput" placeholder="Buscar por número, título o resumen..." value={query} onChange={(e) => setQuery(e.target.value)} />
         <label className="switch">
           <input type="checkbox" checked={onlyPublished} onChange={(e) => setOnlyPublished(e.target.checked)} />
           <span>Solo publicados</span>
@@ -481,15 +537,11 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
           <option value="title">Título</option>
         </select>
 
-        <button className="btn create" onClick={() => setShowCreateModal(true)}>
-          + Nuevo Capítulo
-        </button>
+        <button className="btn create" onClick={() => setShowCreateModal(true)}>+ Nuevo Capítulo</button>
       </div>
 
       <section className="chapterGrid">
-        {filteredChapters.length === 0 && (
-          <div className="empty">No hay capítulos</div>
-        )}
+        {filteredChapters.length === 0 && <div className="empty">No hay capítulos</div>}
 
         {filteredChapters.map((c) => (
           <article key={c.id} className={`chapterCard ${c.is_published ? "published" : "draft"}`}>
@@ -498,31 +550,20 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
                 <div className="chNumber">#{c.chapter_number}</div>
                 <h3 className="chTitle">{c.title}</h3>
               </div>
+
               <div className="chapterStatus">
-                {c.is_published ? (
-                  <span className="badgeOk">Publicado</span>
-                ) : (
-                  <span className="badgeDraft">Borrador</span>
-                )}
+                {c.is_published ? <span className="badgeOk">Publicado</span> : <span className="badgeDraft">Borrador</span>}
               </div>
             </div>
 
-            <p className="chSummary">
-              {c.content ? (c.content.length > 240 ? c.content.slice(0, 240) + "..." : c.content) : "Sin resumen"}
-            </p>
+            <p className="chSummary">{c.content ? (c.content.length > 240 ? c.content.slice(0, 240) + "..." : c.content) : "Sin resumen"}</p>
 
             <div className="chFooter">
               <div className="dateOrPending">
-                {c.is_published && c.published_at ? (
-                  <span className="date">Publicado el {new Date(c.published_at).toLocaleDateString()}</span>
-                ) : (
-                  <span className="pending">Pendiente de publicación</span>
-                )}
+                {c.is_published && c.published_at ? <span className="date">Publicado el {new Date(c.published_at).toLocaleDateString()}</span> : <span className="pending">Pendiente de publicación</span>}
               </div>
 
-              <button className="btnGhost" onClick={() => router.push(`/escritura/capitulos/${storyId}/editar/${c.id}`)}>
-                Editar
-              </button>
+              <button className="btnGhost" onClick={() => router.push(`/escritura/capitulos/${storyId}/editar/${c.id}`)}>Editar</button>
             </div>
           </article>
         ))}
@@ -532,16 +573,15 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
         <div className="modalOverlay">
           <div className="modalBox">
             <h3>Crear Nuevo Capítulo</h3>
-
             <form onSubmit={createChapter}>
               <div className="formGroup">
                 <label>Título</label>
-                <input type="text" value={newChapterTitle} onChange={(e) => setNewChapterTitle(e.target.value)} className="input" />
+                <input className="input" type="text" value={newChapterTitle} onChange={(e) => setNewChapterTitle(e.target.value)} />
               </div>
 
               <div className="formGroup">
                 <label>Resumen / contenido</label>
-                <textarea rows={8} value={newChapterContent} onChange={(e) => setNewChapterContent(e.target.value)} className="textarea" />
+                <textarea className="textarea" rows={8} value={newChapterContent} onChange={(e) => setNewChapterContent(e.target.value)} />
               </div>
 
               <div className="formActionsRow">
@@ -551,12 +591,8 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
                 </label>
 
                 <div className="formBtns">
-                  <button type="button" className="btn cancel" onClick={() => setShowCreateModal(false)}>
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn create" disabled={creating}>
-                    {creating ? "Creando..." : "Crear capítulo"}
-                  </button>
+                  <button type="button" className="btn cancel" onClick={() => setShowCreateModal(false)}>Cancelar</button>
+                  <button type="submit" className="btn create" disabled={creating}>{creating ? "Creando..." : "Crear capítulo"}</button>
                 </div>
               </div>
             </form>
