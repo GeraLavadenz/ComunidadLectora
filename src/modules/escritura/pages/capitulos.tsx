@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import supabase from "../../../lib/supabaseClient"; // tu cliente (no tocar). :contentReference[oaicite:2]{index=2}
+import supabase from "../../../lib/supabaseClient";
 import "../styles/capitulos.css";
 
 const STORAGE_BUCKET = "covers";
@@ -50,7 +50,6 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   const [onlyPublished, setOnlyPublished] = useState(false);
   const [sortBy, setSortBy] = useState<"number" | "title">("number");
 
-  // tags/chips
   const [genres, setGenres] = useState<TagRow[]>([]);
   const [tags, setTags] = useState<TagRow[]>([]);
   const [genreInput, setGenreInput] = useState("");
@@ -59,34 +58,25 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   const [tagSuggestions, setTagSuggestions] = useState<TagRow[]>([]);
   const suggestionAbortRef = useRef<number | null>(null);
 
-  // modal crear capítulo
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState("");
   const [newChapterContent, setNewChapterContent] = useState("");
   const [newIsPublished, setNewIsPublished] = useState(false);
 
-  // cover
   const [uploadingCover, setUploadingCover] = useState(false);
 
   useEffect(() => {
     if (!storyId) return;
     loadStory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyId]);
 
   if (!storyId) {
     return (
       <main className="page">
         <header className="hero">
-          <div className="heroGlow" />
-          <div className="heroContent">
-            <h1 className="title">Historia</h1>
-            <p className="subtitle">ID de historia no encontrado en la ruta.</p>
-            <p style={{ color: "var(--muted)", marginTop: 12 }}>
-              Verifica que estés accediendo desde la ruta correcta o que el componente reciba params.
-            </p>
-          </div>
+          <h1 className="title">Historia</h1>
+          <p className="subtitle">ID de historia no encontrado en la ruta.</p>
         </header>
       </main>
     );
@@ -95,10 +85,10 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   async function loadStory() {
     setLoading(true);
     try {
-      // ----> NO embebemos profiles aquí para evitar ambigüedad. Traemos author_id y chapters.
       const { data, error } = await supabase
         .from("stories")
-        .select(`
+        .select(
+          `
           id,
           title,
           description,
@@ -117,31 +107,28 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
             created_at,
             updated_at
           )
-        `)
+        `
+        )
         .eq("id", storyId)
         .single();
 
       if (error) throw error;
       const storyData = data;
 
-      // --- ahora consultamos profiles por separado para obtener username/full_name
       let authorUsername = "—";
       try {
         if (storyData?.author_id) {
-          const { data: prof, error: pErr } = await supabase
+          const { data: prof } = await supabase
             .from("profiles")
-            .select("username, display_name")
+            .select("username,full_name")
             .eq("id", storyData.author_id)
             .maybeSingle();
-          if (!pErr && prof) authorUsername = prof.username || prof.display_name || "—";
+          if (prof) authorUsername = prof.username || prof.full_name || "—";
         }
-      } catch (e) {
-        console.warn("perfil autor err", e);
-      }
+      } catch {}
 
       setStory({ ...storyData, authorUsername });
 
-      // mapear capítulos
       const chs: ChapterDB[] = (storyData?.chapters || []).map((c: any) => ({
         id: c.id,
         story_id: c.story_id,
@@ -156,50 +143,43 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       chs.sort((a, b) => a.chapter_number - b.chapter_number);
       setChapters(chs);
 
-      // linked tags (story_tags -> tags)
-      const { data: linked, error: linkedErr } = await supabase
+      const { data: linked } = await supabase
         .from("story_tags")
-        .select("tag_id, tags(name,type)")
+        .select("tag_id, tags(id,name,type)")
         .eq("story_id", storyId);
 
-      if (!linkedErr && linked) {
+      if (linked) {
         const g: TagRow[] = [];
         const t: TagRow[] = [];
-        for (const row of linked) {
-          const tag = row.tags ?? row;
-          if (!tag) continue;
-          if (tag.type === "genre") g.push(tag);
-          else t.push(tag);
-        }
+        linked.forEach((row) => {
+          const tag = row.tags;
+          if (!tag) return;
+          tag.type === "genre" ? g.push(tag) : t.push(tag);
+        });
         setGenres(g);
         setTags(t);
       }
-    } catch (err: any) {
-      console.error("Error cargando historia", err);
-      // muestra la respuesta concreta si existe
-      alert("Error cargando historia: " + (err?.message ?? JSON.stringify(err)));
+    } catch (err) {
+      alert("Error cargando historia");
     } finally {
       setLoading(false);
     }
   }
 
-  // suggestions (debounce)
   useEffect(() => {
-    if (genreInput.trim() === "") {
+    if (!genreInput.trim()) {
       setGenreSuggestions([]);
       return;
     }
     fetchTagSuggestions(genreInput.trim(), "genre");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genreInput]);
 
   useEffect(() => {
-    if (tagInput.trim() === "") {
+    if (!tagInput.trim()) {
       setTagSuggestions([]);
       return;
     }
     fetchTagSuggestions(tagInput.trim(), "tag");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tagInput]);
 
   async function fetchTagSuggestions(q: string, type: "genre" | "tag") {
@@ -207,21 +187,15 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       window.clearTimeout(suggestionAbortRef.current);
     }
     suggestionAbortRef.current = window.setTimeout(async () => {
-      try {
-        const { data, error } = await supabase
-          .from("tags")
-          .select("*")
-          .ilike("name", `%${q}%`)
-          .eq("type", type)
-          .limit(8);
+      const { data } = await supabase
+        .from("tags")
+        .select("*")
+        .ilike("name", `%${q}%`)
+        .eq("type", type)
+        .limit(8);
 
-        if (!error && data) {
-          if (type === "genre") setGenreSuggestions(data);
-          else setTagSuggestions(data);
-        }
-      } catch (e) {
-        console.warn("suggestions err", e);
-      }
+      if (type === "genre") setGenreSuggestions(data || []);
+      else setTagSuggestions(data || []);
     }, 220);
   }
 
@@ -234,28 +208,17 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     }
 
     setGenreInput("");
+    let tagRow: TagRow | null = null;
     const { data: existing } = await supabase.from("tags").select("*").ilike("name", trimmed).eq("type", "genre").limit(1);
-    let tagRow: TagRow | null = existing && existing[0] ? existing[0] : null;
+    tagRow = existing?.[0] ?? null;
 
-    try {
-      if (!tagRow) {
-        const { data: insData, error: insErr } = await supabase.from("tags").insert([{ name: trimmed, type: "genre" }]).select().single();
-        if (insErr) {
-          console.warn("create genre err", insErr);
-          const { data: re } = await supabase.from("tags").select("*").ilike("name", trimmed).eq("type", "genre").limit(1);
-          if (re && re[0]) tagRow = re[0];
-        } else {
-          tagRow = insData;
-        }
-      }
-
-      if (tagRow) {
-        await supabase.from("story_tags").insert([{ story_id: storyId, tag_id: tagRow.id }]);
-        setGenres((prev) => [...prev, tagRow!]);
-      }
-    } catch (e: any) {
-      console.error("handleAddGenreByName error", e);
-      alert("Error añadiendo género: " + (e?.message ?? JSON.stringify(e)));
+    if (!tagRow) {
+      const { data: ins } = await supabase.from("tags").insert([{ name: trimmed, type: "genre" }]).select().single();
+      tagRow = ins;
+    }
+    if (tagRow) {
+      await supabase.from("story_tags").insert([{ story_id: storyId, tag_id: tagRow.id }]);
+      setGenres((prev) => [...prev, tagRow!]);
     }
   }
 
@@ -266,55 +229,41 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       setTagInput("");
       return;
     }
+
     setTagInput("");
+    let tagRow: TagRow | null = null;
     const { data: existing } = await supabase.from("tags").select("*").ilike("name", trimmed).eq("type", "tag").limit(1);
-    let tagRow: TagRow | null = existing && existing[0] ? existing[0] : null;
+    tagRow = existing?.[0] ?? null;
 
-    try {
-      if (!tagRow) {
-        const { data: insData, error: insErr } = await supabase.from("tags").insert([{ name: trimmed, type: "tag" }]).select().single();
-        if (insErr) {
-          console.warn("create tag err", insErr);
-          const { data: re } = await supabase.from("tags").select("*").ilike("name", trimmed).eq("type", "tag").limit(1);
-          if (re && re[0]) tagRow = re[0];
-        } else {
-          tagRow = insData;
-        }
-      }
-
-      if (tagRow) {
-        await supabase.from("story_tags").insert([{ story_id: storyId, tag_id: tagRow.id }]);
-        setTags((prev) => [...prev, tagRow!]);
-      }
-    } catch (e: any) {
-      console.error("handleAddTagByName error", e);
-      alert("Error añadiendo etiqueta: " + (e?.message ?? JSON.stringify(e)));
+    if (!tagRow) {
+      const { data: ins } = await supabase.from("tags").insert([{ name: trimmed, type: "tag" }]).select().single();
+      tagRow = ins;
+    }
+    if (tagRow) {
+      await supabase.from("story_tags").insert([{ story_id: storyId, tag_id: tagRow.id }]);
+      setTags((prev) => [...prev, tagRow!]);
     }
   }
 
   async function handleRemoveGenre(id: string) {
-    try {
-      await supabase.from("story_tags").delete().match({ story_id: storyId, tag_id: id });
-      setGenres((g) => g.filter((x) => x.id !== id));
-    } catch (e) {
-      console.error(e);
-    }
+    await supabase.from("story_tags").delete().match({ story_id: storyId, tag_id: id });
+    setGenres((g) => g.filter((x) => x.id !== id));
   }
+
   async function handleRemoveTag(id: string) {
-    try {
-      await supabase.from("story_tags").delete().match({ story_id: storyId, tag_id: id });
-      setTags((g) => g.filter((x) => x.id !== id));
-    } catch (e) {
-      console.error(e);
-    }
+    await supabase.from("story_tags").delete().match({ story_id: storyId, tag_id: id });
+    setTags((g) => g.filter((x) => x.id !== id));
   }
 
   async function createChapter(e?: React.FormEvent) {
     if (e) e.preventDefault();
     if (!storyId) return;
+
     setCreating(true);
     try {
-      const nextNumber = (chapters.reduce((acc, c) => Math.max(acc, c.chapter_number), 0) || 0) + 1;
+      const nextNumber =
+        (chapters.reduce((acc, c) => Math.max(acc, c.chapter_number), 0) || 0) + 1;
+
       const payload = {
         story_id: storyId,
         title: newChapterTitle || `Capítulo ${nextNumber}`,
@@ -322,13 +271,9 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
         chapter_number: nextNumber,
         is_published: newIsPublished,
       };
-      const { data, error } = await supabase.from("chapters").insert([payload]).select().single();
 
-      if (error) {
-        console.error("Error creando capítulo ", error);
-        alert("Error creando capítulo: " + (error?.message ?? JSON.stringify(error)));
-        return;
-      }
+      const { data, error } = await supabase.from("chapters").insert([payload]).select().single();
+      if (error) throw error;
 
       const created: ChapterDB = {
         id: data.id,
@@ -348,9 +293,8 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       setNewChapterContent("");
       setNewIsPublished(false);
       alert("Capítulo creado");
-    } catch (err: any) {
-      console.error("createChapter err", err);
-      alert("Error creando capítulo: " + (err?.message ?? JSON.stringify(err)));
+    } catch {
+      alert("Error al crear capítulo");
     } finally {
       setCreating(false);
     }
@@ -362,53 +306,52 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     try {
       const ext = file.name.split(".").pop();
       const filename = `story-${storyId}-cover.${ext}`;
-      const { data: up, error: upErr } = await supabase.storage.from(STORAGE_BUCKET).upload(filename, file, {
-        upsert: true,
-        cacheControl: "3600",
-        contentType: file.type,
-      });
+
+      const { error: upErr } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(filename, file, { upsert: true });
 
       if (upErr) throw upErr;
 
       const { publicURL } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filename);
 
-      const { data: upd, error: updErr } = await supabase.from("stories").update({ cover_url: publicURL }).eq("id", storyId).select().single();
-      if (updErr) throw updErr;
+      await supabase.from("stories").update({ cover_url: publicURL }).eq("id", storyId);
 
       setStory((s: any) => ({ ...s, cover_url: publicURL }));
-      alert("Portada actualizada");
-    } catch (err: any) {
-      console.error("Error subiendo portada", err);
-      alert("Error subiendo portada: " + (err?.message ?? JSON.stringify(err)));
+    } catch {
+      alert("Error subiendo portada");
     } finally {
       setUploadingCover(false);
     }
   }
 
-  // UI helpers
   const filteredChapters = chapters
     .filter((c) => {
       if (onlyPublished && !c.is_published) return false;
-      if (!query.trim()) return true;
-      const q = query.toLowerCase();
-      return c.title.toLowerCase().includes(q) || (c.content || "").toLowerCase().includes(q) || (c.chapter_number + "").includes(q);
+      const q = query.toLowerCase().trim();
+      if (!q) return true;
+      return (
+        c.title.toLowerCase().includes(q) ||
+        (c.content || "").toLowerCase().includes(q) ||
+        (c.chapter_number + "").includes(q)
+      );
     })
-    .sort((a, b) => {
-      if (sortBy === "number") return a.chapter_number - b.chapter_number;
-      return a.title.localeCompare(b.title);
-    });
+    .sort((a, b) =>
+      sortBy === "number" ? a.chapter_number - b.chapter_number : a.title.localeCompare(b.title)
+    );
 
   const publishedCount = chapters.filter((c) => c.is_published).length;
-  const progressPercent = chapters.length ? Math.round((publishedCount / chapters.length) * 100) : 0;
+  const progressPercent =
+    chapters.length > 0 ? Math.round((publishedCount / chapters.length) * 100) : 0;
 
   return (
     <main className="page">
       <header className="hero">
-        <div className="heroGlow" />
         <div className="heroContent">
           <h1 className="title">{story?.title ?? "Historia"}</h1>
           <p className="subtitle">por {story?.authorUsername ?? "—"}</p>
-          <div className="badges" style={{ marginTop: 12 }}>
+
+          <div className="badges">
             {genres.map((g) => (
               <span key={g.id} className="badgeGenre">{g.name}</span>
             ))}
@@ -418,130 +361,101 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
           </div>
         </div>
 
-        <div style={{ position: "absolute", right: 24, top: 24 }}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {story?.cover_url ? (
-              <img src={story.cover_url} alt="cover" style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 8, border: "1px solid var(--stroke)" }} />
-            ) : (
-              <div style={{ width: 96, height: 96, borderRadius: 8, background: "linear-gradient(180deg,var(--surface),var(--surface-2))", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", border: "1px dashed var(--stroke)" }}>
-                Portada
-              </div>
-            )}
-            <div>
-              <label className="btnGhost" style={{ display: "inline-block", cursor: "pointer" }}>
-                {uploadingCover ? "Subiendo..." : "Cambiar portada"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={(ev) => {
-                    const f = ev.target.files && ev.target.files[0];
-                    handleCoverFile(f || null);
-                    ev.currentTarget.value = "";
-                  }}
-                />
-              </label>
-            </div>
-          </div>
+        <div className="coverContainer">
+          {story?.cover_url ? (
+            <img src={story.cover_url} alt="cover" className="coverImage" />
+          ) : (
+            <div className="coverPlaceholder">Portada</div>
+          )}
+          <label className="btnGhost coverBtn">
+            {uploadingCover ? "Subiendo..." : "Cambiar portada"}
+            <input type="file" accept="image/*" onChange={(e) => handleCoverFile(e.target.files?.[0] || null)} hidden />
+          </label>
         </div>
       </header>
 
       <section className="meta metaSection">
         <article className="card cardArticle">
           <h3>Descripción</h3>
-          <p style={{ color: "var(--muted)" }}>{story?.description}</p>
+          <p className="description">{story?.description}</p>
+
           <ul className="metaList">
-            <li>
-              <span>Creado:</span> {story?.created_at ? new Date(story.created_at).toLocaleDateString() : "—"}
-            </li>
-            <li>
-              <span>Actualizado:</span> {story?.updated_at ? new Date(story.updated_at).toLocaleDateString() : "—"}
-            </li>
-            <li>
-              <span>Capítulos:</span> {chapters.length}
-            </li>
+            <li><span>Creado:</span> {story?.created_at ? new Date(story.created_at).toLocaleDateString() : "—"}</li>
+            <li><span>Actualizado:</span> {story?.updated_at ? new Date(story.updated_at).toLocaleDateString() : "—"}</li>
+            <li><span>Capítulos:</span> {chapters.length}</li>
           </ul>
 
-          <div className="editRow">
-            <h4 className="editTitle">Géneros</h4>
-            <div className="chips">
+          {/* ======== GÉNEROS ======== */}
+          <h4 className="editTitle">Géneros</h4>
+          <div className="tagsSection">
+            <div className="chipsList">
               {genres.map((g) => (
-                <div className="chip genreChip" key={g.id}>
+                <div key={g.id} className="chip genreChip">
                   {g.name}
                   <button className="chipRemove" onClick={() => handleRemoveGenre(g.id)}>×</button>
                 </div>
               ))}
-              <input
-                placeholder="Añadir género y Enter"
-                className="chipInput"
-                value={genreInput}
-                onChange={(e) => setGenreInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddGenreByName(genreInput);
-                  }
-                }}
-                list="genre-suggestions"
-              />
             </div>
+
+            <input
+              placeholder="Añadir género y Enter"
+              className="chipInput"
+              value={genreInput}
+              onChange={(e) => setGenreInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddGenreByName(genreInput)}
+            />
+
             {genreSuggestions.length > 0 && (
-              <div style={{ marginBottom: 8 }}>
+              <div className="suggestionsList">
                 {genreSuggestions.map((s) => (
-                  <button key={s.id} className="btnGhost" onClick={() => handleAddGenreByName(s.name)} style={{ marginRight: 8 }}>
+                  <button key={s.id} className="suggestionBtn" onClick={() => handleAddGenreByName(s.name)}>
                     {s.name}
                   </button>
                 ))}
               </div>
             )}
+          </div>
 
-            <h4 className="editTitle">Etiquetas</h4>
-            <div className="chips">
+          {/* ======== ETIQUETAS ======== */}
+          <h4 className="editTitle">Etiquetas</h4>
+          <div className="tagsSection">
+            <div className="chipsList">
               {tags.map((t) => (
-                <div className="chip tagChip" key={t.id}>
+                <div key={t.id} className="chip tagChip">
                   #{t.name}
                   <button className="chipRemove" onClick={() => handleRemoveTag(t.id)}>×</button>
                 </div>
               ))}
-              <input
-                placeholder="Añadir etiqueta y Enter"
-                className="chipInput"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddTagByName(tagInput);
-                  }
-                }}
-                list="tag-suggestions"
-              />
             </div>
+
+            <input
+              placeholder="Añadir etiqueta y Enter"
+              className="chipInput"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddTagByName(tagInput)}
+            />
+
             {tagSuggestions.length > 0 && (
-              <div style={{ marginBottom: 8 }}>
+              <div className="suggestionsList">
                 {tagSuggestions.map((s) => (
-                  <button key={s.id} className="btnGhost" onClick={() => handleAddTagByName(s.name)} style={{ marginRight: 8 }}>
+                  <button key={s.id} className="suggestionBtn" onClick={() => handleAddTagByName(s.name)}>
                     #{s.name}
                   </button>
                 ))}
               </div>
             )}
-
-            <p className="note">
-              Puedes modificar <strong>géneros</strong> y <strong>etiquetas</strong> incluso si hay capítulos publicados. Estos cambios no afectan el estado de publicación de los capítulos.
-            </p>
           </div>
+
+          <p className="note">
+            Puedes modificar géneros y etiquetas incluso si hay capítulos publicados.
+          </p>
         </article>
 
-        <aside className="card">
+        <aside className="card publicationCard">
           <h4>Publicación</h4>
-          <div className="progressBar" style={{ marginTop: 8 }}>
-            <div
-              className="progressFill"
-              style={{
-                width: `${progressPercent}%`,
-              }}
-            />
+          <div className="progressBar">
+            <div className="progressFill" style={{ width: `${progressPercent}%` }}></div>
           </div>
           <div className="progressText">
             {publishedCount} publicados de {chapters.length} ({progressPercent}%)
@@ -550,9 +464,13 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       </section>
 
       <div className="toolbar">
-        <div className="searchBox" style={{ minWidth: 260 }}>
-          <input className="input" placeholder="Buscar por número, título o resumen..." value={query} onChange={(e) => setQuery(e.target.value)} />
-        </div>
+        <input
+          className="input searchInput"
+          placeholder="Buscar por número, título o resumen..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+
         <label className="switch">
           <input type="checkbox" checked={onlyPublished} onChange={(e) => setOnlyPublished(e.target.checked)} />
           <span>Solo publicados</span>
@@ -563,66 +481,82 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
           <option value="title">Título</option>
         </select>
 
-        <div style={{ marginLeft: "auto" }}>
-          <button className="btn create" onClick={() => setShowCreateModal(true)}>+ Nuevo Capítulo</button>
-        </div>
+        <button className="btn create" onClick={() => setShowCreateModal(true)}>
+          + Nuevo Capítulo
+        </button>
       </div>
 
       <section className="chapterGrid">
-        {filteredChapters.length === 0 && <div className="empty">No hay capítulos</div>}
+        {filteredChapters.length === 0 && (
+          <div className="empty">No hay capítulos</div>
+        )}
+
         {filteredChapters.map((c) => (
-          <article key={c.id} className="chapterCard" data-published={c.is_published}>
+          <article key={c.id} className={`chapterCard ${c.is_published ? "published" : "draft"}`}>
             <div className="chapterHeader">
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div className="chapterInfo">
                 <div className="chNumber">#{c.chapter_number}</div>
-                <div>
-                  <h3 className="chTitle">{c.title}</h3>
-                </div>
+                <h3 className="chTitle">{c.title}</h3>
               </div>
-              <div style={{ textAlign: "right" }}>
-                {c.is_published ? <span className="badgeOk">Publicado</span> : <span className="badgeDraft">Borrador</span>}
+              <div className="chapterStatus">
+                {c.is_published ? (
+                  <span className="badgeOk">Publicado</span>
+                ) : (
+                  <span className="badgeDraft">Borrador</span>
+                )}
               </div>
             </div>
 
-            <p className="chSummary">{c.content ? (c.content.length > 240 ? c.content.slice(0, 240) + "..." : c.content) : "Sin resumen"}</p>
+            <p className="chSummary">
+              {c.content ? (c.content.length > 240 ? c.content.slice(0, 240) + "..." : c.content) : "Sin resumen"}
+            </p>
 
             <div className="chFooter">
-              <div>
-                {c.is_published && c.published_at ? <div className="date">Publicado el {new Date(c.published_at).toLocaleDateString()}</div> : <div className="pending">Pendiente de publicación</div>}
+              <div className="dateOrPending">
+                {c.is_published && c.published_at ? (
+                  <span className="date">Publicado el {new Date(c.published_at).toLocaleDateString()}</span>
+                ) : (
+                  <span className="pending">Pendiente de publicación</span>
+                )}
               </div>
-              <div>
-                <button className="btnGhost" onClick={() => router.push(`/escritura/capitulos/${storyId}/editar/${c.id}`)}>Editar</button>
-              </div>
+
+              <button className="btnGhost" onClick={() => router.push(`/escritura/capitulos/${storyId}/editar/${c.id}`)}>
+                Editar
+              </button>
             </div>
           </article>
         ))}
       </section>
 
-      {/* Modal crear capítulo */}
       {showCreateModal && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex",
-          alignItems: "center", justifyContent: "center", zIndex: 1200
-        }}>
-          <div style={{ width: "min(900px,95%)" }} className="formContainer">
+        <div className="modalOverlay">
+          <div className="modalBox">
             <h3>Crear Nuevo Capítulo</h3>
+
             <form onSubmit={createChapter}>
               <div className="formGroup">
                 <label>Título</label>
-                <input type="text" value={newChapterTitle} onChange={(e) => setNewChapterTitle(e.target.value)} />
+                <input type="text" value={newChapterTitle} onChange={(e) => setNewChapterTitle(e.target.value)} className="input" />
               </div>
+
               <div className="formGroup">
                 <label>Resumen / contenido</label>
-                <textarea rows={8} value={newChapterContent} onChange={(e) => setNewChapterContent(e.target.value)} />
+                <textarea rows={8} value={newChapterContent} onChange={(e) => setNewChapterContent(e.target.value)} className="textarea" />
               </div>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+
+              <div className="formActionsRow">
                 <label className="switch">
                   <input type="checkbox" checked={newIsPublished} onChange={(e) => setNewIsPublished(e.target.checked)} />
                   <span>Publicar ahora</span>
                 </label>
-                <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-                  <button type="button" className="btn cancel" onClick={() => setShowCreateModal(false)}>Cancelar</button>
-                  <button type="submit" className="btn create" disabled={creating}>{creating ? "Creando..." : "Crear capítulo"}</button>
+
+                <div className="formBtns">
+                  <button type="button" className="btn cancel" onClick={() => setShowCreateModal(false)}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn create" disabled={creating}>
+                    {creating ? "Creando..." : "Crear capítulo"}
+                  </button>
                 </div>
               </div>
             </form>
