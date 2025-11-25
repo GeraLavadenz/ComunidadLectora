@@ -122,7 +122,7 @@
 
 .formActionsRow { display:flex; align-items:center; gap:12px; justify-content:space-between; margin-top:12px; }
 .formBtns { display:flex; gap:8px; }
-.textarea { min-height:120px; padding:12px 14px; border-radius:12px; border:1px solid var(--stroke); background:var(--surface); color:var(--text); resize:vertical; }
+.textarea { width: 100%;min-height:300px; padding:12px 14px; border-radius:12px; border:1px solid var(--stroke); background:var(--surface); color:var(--text); resize:vertical; }
 
 .searchInput { max-width:320px; }
 .publicationCard { display:flex; flex-direction:column; gap:8px; }
@@ -222,4 +222,11 @@
 @media (max-width:860px) {
   .heroContent { padding: 12px; }
   .toolbar { flex-direction: column; align-items: stretch; }
+}
+
+.row {
+  display: flex;
+  align-items: center;   /* centra vertical */
+  justify-content: space-between; /* uno a la izq, otro a la der */
+  gap: 12px;
 }

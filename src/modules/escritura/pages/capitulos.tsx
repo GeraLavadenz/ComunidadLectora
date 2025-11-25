@@ -397,7 +397,6 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
           <h1 className="title">{story?.title ?? "Historia"}</h1>
           <p className="subtitle">
             por {story?.authorUsername ?? "—"}
-            <button className="btnGhost editBtn" title="Editar descripción" onClick={startEditDescription} aria-label="Editar descripción">✎</button>
           </p>
 
           <div className="badges">
@@ -413,8 +412,10 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
 
       <section className="meta metaSection">
         <article className="card cardArticle">
-          <h3>Descripción</h3>
-
+          <div className="row">
+            <h3>Descripción</h3>
+            <button className="btnGhost editBtn" title="Editar descripción" onClick={startEditDescription} aria-label="Editar descripción">✎</button>
+          </div>
           {!editingDescription ? (
             <>
               <p className="description">{story?.description || "—"}</p>
