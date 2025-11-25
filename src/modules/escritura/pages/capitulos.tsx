@@ -563,7 +563,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
                 {c.is_published && c.published_at ? <span className="date">Publicado el {new Date(c.published_at).toLocaleDateString()}</span> : <span className="pending">Pendiente de publicación</span>}
               </div>
 
-              <button className="btnGhost" onClick={() => router.push(`/escritura/capitulos/${storyId}/editar/${c.id}`)}>Editar</button>
+              <button className="btnGhost" onClick={() => router.push(`/escritura/capitulos/${storyId}/${c.id}/editar`)}>Editar</button>
 
             </div>
           </article>
