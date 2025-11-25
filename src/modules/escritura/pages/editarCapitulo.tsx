@@ -7,8 +7,11 @@ import supabase from "@/lib/supabaseClient";
 import "../styles/capitulos.css";
 import "../styles/editarCapitulo.css";
 
-// Carga dinámica del corrector IA (evita SSR issues)
-const AITextCorrector = dynamic(() => import("@/modules/escritura/components/AITextCorrector"), { ssr: false });
+// carga dinámica del corrector IA (evita SSR issues)
+const AITextCorrector = dynamic(
+  () => import("@/modules/escritura/components/AITextCorrector"),
+  { ssr: false }
+);
 
 type ChapterRow = {
   id: string;
@@ -28,6 +31,8 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
 
   const [loading, setLoading] = useState(true);
   const [chapter, setChapter] = useState<ChapterRow | null>(null);
+  const [storyTitle, setStoryTitle] = useState<string | null>(null);
+
   const [localTitle, setLocalTitle] = useState("");
   const [localSummary, setLocalSummary] = useState("");
   const [localContent, setLocalContent] = useState("");
@@ -39,7 +44,7 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
   const [aiCorrectedText, setAiCorrectedText] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Load chapter from Supabase
+  // Cargar capítulo desde Supabase
   const loadChapter = useCallback(async () => {
     if (!chapterId) return;
     setLoading(true);
@@ -70,14 +75,32 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
     }
   }, [chapterId]);
 
+  // Cargar título de la historia (para mostrar nombre en la UI)
+  const loadStoryTitle = useCallback(async () => {
+    if (!storyId) return;
+    try {
+      const { data, error } = await supabase
+        .from("stories")
+        .select("title")
+        .eq("id", storyId)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) setStoryTitle(data.title ?? null);
+    } catch (err: any) {
+      console.warn("No se pudo cargar título de story", err);
+      setStoryTitle(null);
+    }
+  }, [storyId]);
+
   useEffect(() => {
     loadChapter();
-  }, [loadChapter]);
+    loadStoryTitle();
+  }, [loadChapter, loadStoryTitle]);
 
   if (loading) return <div className="page">Cargando capítulo...</div>;
   if (!chapter) return <div className="page">Capítulo no encontrado.</div>;
 
-  // Save to DB
+  // Guardar en BD
   async function handleSave(e?: React.FormEvent) {
     if (e) e.preventDefault();
     setSaving(true);
@@ -92,11 +115,9 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
       };
       const { data, error } = await supabase.from("chapters").update(payload).eq("id", chapterId).select().maybeSingle();
       if (error) throw error;
-      // update local state
       setChapter((prev) => (prev ? { ...prev, ...payload } as ChapterRow : prev));
       setPublishedAt(payload.published_at);
       alert("Capítulo guardado correctamente");
-      // redirigir a la lista de capítulos (opcional)
       router.push(`/escritura/capitulos/${storyId}`);
     } catch (err: any) {
       console.error("Error guardando capítulo", err);
@@ -106,21 +127,16 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
     }
   }
 
-  // Toggle publish
-  async function handlePublishToggle() {
+  // Toggle publish (no guarda automáticamente)
+  function handlePublishToggle() {
     const newPublished = !isPublished;
     setIsPublished(newPublished);
     setPublishedAt(newPublished ? new Date().toISOString() : null);
-    // no auto-save aquí, espera a que el usuario pulse Guardar
   }
 
-  // IA integration:
-  // AITextCorrector debe aceptar props: { originalText, onApply(correctedText) } 
-  // (ajusta si tu componente tiene otra API)
+  // IA integration: aplicamos la corrección recibida y cerramos el panel
   function handleApplyAICorrection(corrected: string) {
     setAiCorrectedText(corrected);
-    // dejar al usuario aplicar manualmente:
-    // aplicarlo automáticamente:
     setLocalContent(corrected);
     setShowAI(false);
   }
@@ -129,39 +145,45 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
     <main className={`page ${showAI ? "formWithAISide" : ""}`}>
       <header className="hero">
         <div className="heroGlow" />
-        <div className="heroContent">
-          <h1 className="title">Editar Capítulo #{chapter.chapter_number}</h1>
-          <p className="subtitle">Historia: {storyId} {/* si quieres el título de la story, puedes cargar stories.title en loadChapter */}</p>
-        </div>
-
-        <div style={{ position: "absolute", right: 24, top: 24 }}>
-          <button
-            className={`kollaIAButton ${showAI ? "active" : ""}`}
-            onClick={() => setShowAI((s) => !s)}
-            title={showAI ? "Cerrar panel de IA" : "Abrir panel de IA"}
-            aria-pressed={showAI}
-          >
-            🤖 Kolla IA
-          </button>
+        <div className="heroInner">
+          <div className="heroContent">
+            <h1 className="title">Editar Capítulo #{chapter.chapter_number}</h1>
+            <p className="subtitle">Historia: {storyTitle ?? storyId}</p>
+          </div>
+          <div className="heroRightPlaceholder" />
         </div>
       </header>
 
-      <section className="meta metaSection">
-        <article className="card cardArticle">
-          <h3>Detalles del Capítulo</h3>
+      <section className="centerContainer">
+        <article className={`card cardWide ${showAI ? "withAI" : "noAI"}`}>
+          <h3 className="cardTitle">Detalles del Capítulo</h3>
 
           <form onSubmit={handleSave} className="formRow">
             {/* Editor column */}
             <div className="editorColumn">
-              <div className="formGroup">
-                <label className="label" htmlFor="title">Título</label>
-                <input
-                  id="title"
-                  className="input"
-                  type="text"
-                  value={localTitle}
-                  onChange={(e) => setLocalTitle(e.target.value)}
-                />
+              <div className="titleRow">
+                <div className="titleField">
+                  <label className="label" htmlFor="title">Título</label>
+                  <input
+                    id="title"
+                    className="input"
+                    type="text"
+                    value={localTitle}
+                    onChange={(e) => setLocalTitle(e.target.value)}
+                  />
+                </div>
+
+                <div className="iaButtonWrapper">
+                  <button
+                    type="button"
+                    className={`kollaIAButton ${showAI ? "active" : ""}`}
+                    onClick={() => setShowAI((s) => !s)}
+                    title={showAI ? "Cerrar panel de IA" : "Abrir panel de IA"}
+                    aria-pressed={showAI}
+                  >
+                    🤖 Kolla IA
+                  </button>
+                </div>
               </div>
 
               <div className="formGroup">
@@ -169,27 +191,29 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
                 <textarea
                   id="content"
                   className="contentTextarea mainTextarea"
-                  value={localContent}
+                  value={localContent ?? ""}
                   onChange={(e) => setLocalContent(e.target.value)}
                   placeholder="Escribe el contenido completo del capítulo aquí..."
                 />
               </div>
 
-              <div className="publishedToggle" style={{ marginTop: 12 }}>
+              <div className="publishedToggle">
                 <label className="switch">
                   <input type="checkbox" checked={isPublished} onChange={handlePublishToggle} />
                   <span>Publicado</span>
                 </label>
                 {isPublished && publishedAt && (
-                  <span className="date" style={{ marginLeft: 12 }}>
-                    Publicado el {new Date(publishedAt).toLocaleDateString()}
-                  </span>
+                  <span className="date">Publicado el {new Date(publishedAt).toLocaleDateString()}</span>
                 )}
               </div>
 
-              <div style={{ marginTop: 16 }} className="formActions">
-                <button type="submit" className="btn create" disabled={saving}>{saving ? "Guardando..." : "Guardar Cambios"}</button>
-                <button type="button" className="btn cancel" onClick={() => router.back()}>Cancelar</button>
+              <div className="formActions">
+                <button type="submit" className="btn create" disabled={saving}>
+                  {saving ? "Guardando..." : "Guardar Cambios"}
+                </button>
+                <button type="button" className="btn cancel" onClick={() => router.back()}>
+                  Cancelar
+                </button>
               </div>
             </div>
 
@@ -197,28 +221,16 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
             {showAI && (
               <aside className="aiColumn" aria-label="Panel corrector IA">
                 <div className="aiHeader">
-                  <h3>Corrector IA</h3>
-                  <div className="aiHeaderActions">
-                    <button className={`aiBtn ${aiCorrectedText ? "active" : ""}`} onClick={() => {
-                      // Si ya hay corrección generada, aplicarla
-                      if (aiCorrectedText) {
-                        setLocalContent(aiCorrectedText);
-                        setShowAI(false);
-                      }
-                    }}>
-                      Aplicar corrección
-                    </button>
-                    <button className="aiBtn" onClick={() => { setShowAI(false); }}>Cerrar</button>
+                  <h3 className="aiTitle">KOLLA IA — Corrección y comparación</h3>
+                  <div className="aiHeaderActions">                    
                   </div>
                 </div>
 
                 <div className="aiTextAreaWrap">
-                  {/* Si tu AITextCorrector expone onApply y originalText props ajusta aquí */}
-                  {typeof AITextCorrector !== "undefined" ? (
+                  {AITextCorrector ? (
                     <AITextCorrector
                       originalText={localContent}
                       onApply={(corrected: string) => handleApplyAICorrection(corrected)}
-                      // opcionales: onGenerate, onError, loading etc.
                     />
                   ) : (
                     <div className="muted">Cargando corrector IA...</div>

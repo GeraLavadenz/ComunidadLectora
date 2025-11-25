@@ -93,12 +93,7 @@ export default function NewChapterFromModules({ storyId }: { storyId?: string })
     <main className="page">
       <div className="formContainer">
         <h2>Nuevo capítulo</h2>
-
-        <div className="metaList">
-          <div><strong>Historia:</strong> {storyTitle || "—"}</div>
-          <div><strong>Siguiente número:</strong> {nextNumber ?? "—"}</div>
-        </div>
-
+        
         <form onSubmit={handleSubmit} className={aiOpen ? "formWithAISide" : ""}>
           <div className="formRow">
             {/* LEFT: editor principal */}
