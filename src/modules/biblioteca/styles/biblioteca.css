@@ -71,3 +71,27 @@
     grid-template-columns: 280px 1fr;
   }
 }
+
+.books-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  padding: 0.5rem;
+  width: 100%;
+  align-items: stretch;
+}
+
+/* Para pantallas pequeñas */
+@media (max-width: 500px) {
+  .books-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Para pantallas grandes (como tu screenshot) */
+@media (min-width: 1280px) {
+  .books-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
