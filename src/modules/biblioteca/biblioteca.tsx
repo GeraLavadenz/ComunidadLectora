@@ -53,46 +53,58 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
   const [loading, setLoading] = useState(false);
 
   // Estado de géneros y etiquetas disponibles
-  const [allGenres, setAllGenres] = useState<string[]>([]);
-  const [allTags, setAllTags] = useState<string[]>([]);
+  const [allGenres, setAllGenres] = useState<{ id: string; name: string }[]>([]);
+  const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
 
   const debouncedQuery = useDebounced(query, 250);
   const debouncedAuthor = useDebounced(author, 250);
 
   // Fetch libros desde BD
-  useEffect(() => {
-    const fetchBooks = async () => {
-      setBooksLoading(true);
-      const { data, error } = await supabase
-        .from('vw_library_books')
-        .select('*');
-      if (error) {
-        console.error('Error fetching books:', error);
-        setBooks([]);
-      } else {
-        interface LibraryBook {
-          story_id: string;
-          title: string;
-          author_name: string;
-          genres: string | null;
-          tags: string | null;
-          cover_url: string | null;
-        }
+  // Fetch libros desde BD (solo publicados)
+useEffect(() => {
+  const fetchBooks = async () => {
+    setBooksLoading(true);
 
-        const mappedBooks: Book[] = (data as LibraryBook[]).map((item) => ({
-          id: item.story_id,
-          title: item.title,
-          author: item.author_name,
-          genres: item.genres ? item.genres.split(',').map((g) => g.trim()) : [],
-          tags: item.tags ? item.tags.split(',').map((t) => t.trim()) : [],
-          cover: item.cover_url || undefined,
-        }));
-        setBooks(mappedBooks);
+    const { data, error } = await supabase
+      .from("vw_library_books")
+      .select("*")
+      .eq("status", "published"); // <-- FILTRO CLAVE
+
+    if (error) {
+      console.error("Error fetching books:", error);
+      setBooks([]);
+    } else {
+      interface LibraryBook {
+        story_id: string;
+        title: string;
+        author_name: string;
+        genres: string | null;
+        tags: string | null;
+        cover_url: string | null;
       }
-      setBooksLoading(false);
-    };
-    fetchBooks();
-  }, []);
+
+      const mappedBooks: Book[] = (data as LibraryBook[]).map((item) => ({
+        id: item.story_id,
+        title: item.title,
+        author: item.author_name,
+        genres: item.genres
+          ? item.genres.split(",").map((g) => g.trim())
+          : [],
+        tags: item.tags
+          ? item.tags.split(",").map((t) => t.trim())
+          : [],
+        cover: item.cover_url || undefined,
+      }));
+
+      setBooks(mappedBooks);
+    }
+
+    setBooksLoading(false);
+  };
+
+  fetchBooks();
+}, []);
+
 
   // Catálogos únicos
   const catalog = useMemo(() => {
@@ -107,8 +119,8 @@ export default function BibliotecaPage({ genre }: BibliotecaProps) {
 
   // Actualizar allGenres y allTags desde el catálogo
   useEffect(() => {
-    setAllGenres(catalog.genres);
-    setAllTags(catalog.tags);
+    setAllGenres(catalog.genres.map((g) => ({ id: String(g), name: String(g) })));
+    setAllTags(catalog.tags.map((t) => ({ id: String(t), name: String(t) })));
   }, [catalog]);
 
   // Simular "carga" cuando cambian filtros para ver la animación

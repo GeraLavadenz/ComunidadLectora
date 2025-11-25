@@ -71,3 +71,43 @@
     grid-template-columns: 280px 1fr;
   }
 }
+
+.books-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  padding: 0.5rem;
+  width: 100%;
+  align-items: stretch;
+}
+
+/* Para pantallas pequeñas */
+@media (max-width: 500px) {
+  .books-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Para pantallas grandes (como tu screenshot) */
+@media (min-width: 1280px) {
+  .books-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+
+.book-card {
+  height: 100%;       /* hace que cada tarjeta llene su celda */
+  display: flex;
+  flex-direction: column;
+}
+
+.book-info {
+  flex: 1;            /* empuja los botones hacia abajo */
+  display: flex;
+  flex-direction: column;
+}
+
+.book-actions {
+  margin-top: auto;   /* asegura que siempre queden abajo */
+}

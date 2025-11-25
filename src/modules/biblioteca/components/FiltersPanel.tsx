@@ -1,4 +1,3 @@
-// app/components/FiltersPanel.tsx
 'use client';
 
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
@@ -87,13 +86,32 @@ export default function FiltersPanel({
     return found ? found.name : id;
   }
 
-  // Normalize to guarantee string ids and shape
-  const normalizeRows = (rows: any[], type: string): TagRow[] =>
-    (rows ?? []).map((r, idx) => {
-      const rawId = r.id ?? r.slug ?? r.name ?? `${type}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
-      const name = r.name ?? r.title ?? String(rawId);
+  // Normalize to guarantee string ids and shape + dedupe
+  const normalizeRows = (rows: any[] = [], type: string): TagRow[] => {
+    const out: TagRow[] = (rows ?? []).map((r, idx) => {
+      const maybeId = r?.id ?? r?.slug ?? (r?.name ? String(r.name) : undefined);
+      const fallback = `${type}-${idx}`;
+      const rawId = maybeId ?? fallback;
+      const name = r?.name ?? r?.title ?? String(rawId);
       return { id: String(rawId), name: String(name), type };
     });
+
+    // dedupe by id (keep first)
+    const seen = new Set<string>();
+    const deduped: TagRow[] = [];
+    for (const row of out) {
+      if (seen.has(row.id)) {
+        // helpful debug for tracking where duplicates come from
+        // eslint-disable-next-line no-console
+        console.warn(`Duplicate ${type} id detected and ignored:`, row.id);
+        continue;
+      }
+      seen.add(row.id);
+      deduped.push(row);
+    }
+
+    return deduped;
+  };
 
   const fetchMeta = useCallback(async () => {
     setLoading(true);
@@ -103,7 +121,6 @@ export default function FiltersPanel({
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
 
-      // Expect { genres: [...], tags: [...] }
       const genres = normalizeRows(json.genres ?? [], 'genre');
       const tags = normalizeRows(json.tags ?? [], 'tag');
 
@@ -111,10 +128,11 @@ export default function FiltersPanel({
       setFetchedGenres(genres);
       setFetchedTags(tags);
     } catch (err: any) {
+      // eslint-disable-next-line no-console
       console.error('FiltersPanel.fetchMeta error:', err);
       if (mountedRef.current) {
         setError(err?.message ?? 'Error cargando datos');
-        setFetchedGenres((prev) => prev ?? []); // avoid flicker by keeping null->[] consistent
+        setFetchedGenres((prev) => prev ?? []);
         setFetchedTags((prev) => prev ?? []);
       }
     } finally {
@@ -129,14 +147,26 @@ export default function FiltersPanel({
 
   // prefer props if provided (props override only when non-empty)
   const genresList = useMemo(() => {
-    if (allGenresProp && allGenresProp.length > 0)
-      return allGenresProp.map((g) => ({ id: String(g.id), name: g.name, type: 'genre' as const }));
+    if (allGenresProp && allGenresProp.length > 0) {
+      return allGenresProp
+        .map((g, i) => {
+          const id = g?.id ?? g?.slug ?? (g?.name ? String(g.name) : `genre-prop-${i}`);
+          return { id: String(id), name: g?.name ?? String(id), type: 'genre' as const };
+        })
+        .filter((x, idx, arr) => arr.findIndex((a) => a.id === x.id) === idx);
+    }
     return fetchedGenres ?? [];
   }, [allGenresProp, fetchedGenres]);
 
   const tagsList = useMemo(() => {
-    if (allTagsProp && allTagsProp.length > 0)
-      return allTagsProp.map((g) => ({ id: String(g.id), name: g.name, type: 'tag' as const }));
+    if (allTagsProp && allTagsProp.length > 0) {
+      return allTagsProp
+        .map((t, i) => {
+          const id = t?.id ?? t?.slug ?? (t?.name ? String(t.name) : `tag-prop-${i}`);
+          return { id: String(id), name: t?.name ?? String(id), type: 'tag' as const };
+        })
+        .filter((x, idx, arr) => arr.findIndex((a) => a.id === x.id) === idx);
+    }
     return fetchedTags ?? [];
   }, [allTagsProp, fetchedTags]);
 
@@ -239,8 +269,8 @@ export default function FiltersPanel({
                   <div>No hay géneros</div>
                 ) : (
                   <div className="filters-panel-chips" role="list" aria-label="Géneros">
-                    {genresList.map((g) => (
-                      <div role="listitem" key={`genre-${String(g.id)}`}>
+                    {genresList.map((g, i) => (
+                      <div role="listitem" key={`genre-${g.id ?? `genre-fallback-${i}`}`}>
                         <Chip
                           label={g.name}
                           active={selectedGenresSet.has(String(g.id))}
@@ -272,8 +302,8 @@ export default function FiltersPanel({
                 <div>No hay etiquetas</div>
               ) : (
                 <div className="filters-panel-chips" role="list" aria-label="Etiquetas">
-                  {tagsList.map((t) => (
-                    <div role="listitem" key={`tag-${String(t.id)}`}>
+                  {tagsList.map((t, i) => (
+                    <div role="listitem" key={`tag-${t.id ?? `tag-fallback-${i}`}`}>
                       <Chip
                         label={t.name}
                         active={selectedTagsSet.has(String(t.id))}

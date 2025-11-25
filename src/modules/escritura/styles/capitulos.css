@@ -104,6 +104,7 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+
 /* ---- Additions / mappings for component classes without inline styles ---- */
 
 .chipsList { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
@@ -230,6 +231,7 @@
   justify-content: space-between; /* uno a la izq, otro a la der */
   gap: 12px;
 }
+
 
 /* ---------------------------
    ESTILO DEL TOGGLE DE HISTORIA
