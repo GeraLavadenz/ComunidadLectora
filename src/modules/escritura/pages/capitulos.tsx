@@ -564,6 +564,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
               </div>
 
               <button className="btnGhost" onClick={() => router.push(`/escritura/capitulos/${storyId}/editar/${c.id}`)}>Editar</button>
+
             </div>
           </article>
         ))}
