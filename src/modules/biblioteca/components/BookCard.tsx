@@ -19,70 +19,49 @@ interface BookCardProps {
 
 export default function BookCard({ book }: BookCardProps) {
   return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 12, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 12, scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 260, damping: 24 }}
-      className="book-card group"
-    >
-      <div className="book-card-grid">
-        {/* Portada */}
-        <div className="book-card-cover">
-          <div className="book-card-cover-aspect">
-            {book.cover ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={book.cover}
-                alt={`Portada de ${book.title}`}
-                className="book-card-cover-img"
-                loading="lazy"
-              />
-            ) : (
-              <div className="book-card-no-cover">
-                Sin portada
-              </div>
-            )}
-          </div>
-        </div>
+    <motion.article className="book-card">
+  <div className="book-card-grid">
 
-        {/* Info */}
-        <div className="book-card-info">
-          <h3 className="book-card-title">{book.title}</h3>
-          <div className="book-card-author">por <span>{book.author}</span></div>
+    <div className="book-cover">
+      <div className="book-cover-inner">
+        {book.cover ? (
+          <img src={book.cover} alt={book.title} />
+        ) : (
+          <div className="book-nocover">Sin portada</div>
+        )}
+      </div>
+    </div>
 
-          <div className="book-card-genres-tags">
-            {book.genres.map((g) => (
-              <span key={g} className="book-card-genre">
-                {g}
-              </span>
-            ))}
-            {book.tags.map((t) => (
-              <span key={t} className="book-card-tag">{t}</span>
-            ))}
-          </div>
+    <div className="book-info">
 
-          <div className="book-card-buttons">
-            <button className="book-card-read-btn">
-              Leer ahora
-            </button>
-            <button className="book-card-details-btn">
-              Ver detalles
-            </button>
-          </div>
-        </div>
+      <h3 className="book-title">{book.title}</h3>
+
+      <div className="book-author">
+        por <strong>{book.author}</strong>
       </div>
 
-      {/* Glow animado */}
-      <motion.div
-        aria-hidden
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.2 }}
-        whileHover={{ opacity: 0.35 }}
-        transition={{ duration: 0.4 }}
-        className="book-card-glow"
-      />
-    </motion.article>
+      <Stars value={book.rating ?? 0} />
+
+      <div className="book-tags">
+        {book.genres.map(g => (
+          <span className="book-tag book-tag-primary" key={g}>{g}</span>
+        ))}
+        {book.tags.map(t => (
+          <span className="book-tag" key={t}>{t}</span>
+        ))}
+      </div>
+
+      <div className="book-actions">
+        <button className="book-btn book-btn-primary">Leer ahora</button>
+        <button className="book-btn book-btn-secondary">Ver detalles</button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <motion.div className="book-glow" />
+</motion.article>
+
   );
 }
