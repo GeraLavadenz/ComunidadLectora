@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import "../styles/ai-corrector.css";
 
 type Mode = "correct" | "improve" | "paraphrase";
 
@@ -72,9 +73,9 @@ export default function AITextCorrector({
           Parafrasear
         </label>
 
-        <div className="aiActions">
-          <button className="btnGhost" onClick={() => { setText(initialText); setSuggestion(null); }}>Reset</button>
-          <button className="btn" onClick={handleGenerate} disabled={loading}>
+        <div className="aiToolbar">
+          <button className="aiBtn aiApplyBtn" onClick={() => { setText(initialText); setSuggestion(null); }}>Aplicar cambios</button>
+          <button className="aiBtn aiGenerateBtn" onClick={handleGenerate} disabled={loading}>
             {loading ? "Generando..." : "Generar con IA"}
           </button>
         </div>
@@ -101,7 +102,6 @@ export default function AITextCorrector({
               <button className="btn" onClick={() => { onApply(suggestion); setText(suggestion); setSuggestion(null); }}>
                 Aplicar al editor
               </button>
-              <button className="btnGhost" onClick={() => setSuggestion(null)}>Cerrar</button>
             </div>
           </>
         ) : (

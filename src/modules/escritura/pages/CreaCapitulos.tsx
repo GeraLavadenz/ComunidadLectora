@@ -1,9 +1,10 @@
-// src/modules/escritura/pages/newChapter.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import supabase from "@/lib/supabaseClient";
+import AITextCorrector from "@/modules/escritura/components/AITextCorrector"; // ruta que indicaste
+import "../styles/capitulos-create.css";
 
 export default function NewChapterFromModules({ storyId }: { storyId?: string }) {
   const router = useRouter();
@@ -13,6 +14,11 @@ export default function NewChapterFromModules({ storyId }: { storyId?: string })
   const [chapterContent, setChapterContent] = useState("");
   const [publishNow, setPublishNow] = useState(false);
   const [nextNumber, setNextNumber] = useState<number | null>(null);
+
+  // side panel
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiInitial, setAiInitial] = useState(""); // texto pasado al corrector
+  const [aiResult, setAiResult] = useState<string | null>(null); // respuesta previa (opcional)
 
   useEffect(() => {
     if (!storyId) return;
@@ -59,7 +65,6 @@ export default function NewChapterFromModules({ storyId }: { storyId?: string })
       };
       const { data, error } = await supabase.from("chapters").insert([payload]).select().single();
       if (error) throw error;
-      // redirige a la lista de capítulos en tu ruta principal (igual que antes)
       router.push(`/escritura/capitulos/${storyId}`);
     } catch (err: any) {
       console.error("create chapter error", err);
@@ -69,42 +74,102 @@ export default function NewChapterFromModules({ storyId }: { storyId?: string })
     }
   }
 
+  // abrir el panel IA y pasar el texto actual
+  function openAISidePanel() {
+    setAiInitial(chapterContent);
+    setAiResult(null);
+    setAiOpen(true);
+  }
+
+  // callback que AITextCorrector usará para aplicar la corrección (onApply)
+  function handleApplyAISuggestion(newText: string) {
+    setChapterContent(newText);
+    setAiResult(newText);
+    // dejar el panel abierto para comparar si quieres; si prefieres cerrarlo, descomenta:
+    // setAiOpen(false);
+  }
+
   return (
     <main className="page">
       <div className="formContainer">
         <h2>Nuevo capítulo</h2>
+
         <div className="metaList">
           <div><strong>Historia:</strong> {storyTitle || "—"}</div>
           <div><strong>Siguiente número:</strong> {nextNumber ?? "—"}</div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="formGroup">
-            <label>Título</label>
-            <input className="input" value={chapterTitle} onChange={(e) => setChapterTitle(e.target.value)} />
-          </div>
+        <form onSubmit={handleSubmit} className={aiOpen ? "formWithAISide" : ""}>
+          <div className="formRow">
+            {/* LEFT: editor principal */}
+            <div className="editorColumn">
+              <div className="formGroup">
+                <label>Título</label>
+                <input className="input" value={chapterTitle} onChange={(e) => setChapterTitle(e.target.value)} />
+              </div>
 
-          <div className="formGroup">
-            <label>Contenido / Resumen</label>
-            <textarea className="textarea" rows={8} value={chapterContent} onChange={(e) => setChapterContent(e.target.value)} />
-          </div>
+              <div className="formGroup">
+                <div className="labelWithActions">
+                  <label>Contenido / Resumen</label>
+                  <div className="inlineActions">
+                  <button 
+                    type="button" 
+                    className={`kollaIAButton ${aiOpen ? "active" : ""}`}
+                    onClick={() => setAiOpen(!aiOpen)}
+                    >
+                    🧠 KOLLA IA
+                    </button>
 
-          <div className="formActions">
-            <label className="switch">
-              <input type="checkbox" checked={publishNow} onChange={(e) => setPublishNow(e.target.checked)} />
-              <span>Publicar ahora</span>
-            </label>
+                    <button type="button" className="btnGhost" onClick={() => { setChapterContent(""); setAiResult(null); }}>Limpiar</button>
+                  </div>
+                </div>
 
-            <div style={{ display: "flex", gap: 8 }}>
-              <button type="button" className="btn cancel" onClick={() => router.push(`/escritura/capitulos/${storyId}`)}>Cancelar</button>
-              <button type="submit" className="btn create" disabled={saving}>{saving ? "Creando..." : "Crear capítulo"}</button>
+                <textarea
+                  className="textarea mainTextarea"
+                  rows={18}
+                  value={chapterContent}
+                  onChange={(e) => setChapterContent(e.target.value)}
+                  placeholder="Escribe o pega el borrador aquí..."
+                />
+              </div>
+
+              <div className="formActionsRow">
+                <label className="switch">
+                  <input type="checkbox" checked={publishNow} onChange={(e) => setPublishNow(e.target.checked)} />
+                  <span>Publicar ahora</span>
+                </label>
+
+                <div className="formBtns">
+                  <button type="button" className="btn cancel" onClick={() => router.push(`/escritura/capitulos/${storyId}`)}>Cancelar</button>
+                  <button type="submit" className="btn create" disabled={saving}>{saving ? "Creando..." : "Crear capítulo"}</button>
+                </div>
+              </div>
             </div>
+
+            {/* RIGHT: panel IA (visible si aiOpen) */}
+            {aiOpen && (
+              <aside className="aiColumn" aria-label="Comparador IA">
+                <div className="aiHeader">
+                  <h3>KOLLA IA — Corrección y comparación</h3>
+                  <div className="aiHeaderActions">
+                  </div>
+                </div>
+
+                {/* AITextCorrector se encarga de generar y ofrecer 'Aplicar' */}
+                <AITextCorrector
+                  initialText={aiInitial}
+                  onApply={handleApplyAISuggestion}
+                  apiEndpoint="/api/ai/correct"
+                />
+              </aside>
+            )}
           </div>
         </form>
       </div>
     </main>
   );
 }
+
 // Chip editor UI (igual)
 function ChipEditor({ items = [], placeholder, onAdd, onRemove, badgeClass = "", ariaLabel = "" }: any) {
   const [value, setValue] = useState("");
