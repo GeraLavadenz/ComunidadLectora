@@ -1,8 +1,10 @@
-"use client";
+// src/modules/escritura/pages/capitulos.tsx
+'use client';
 
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import supabase from "../../../lib/supabaseClient";
+// uso el cliente local que subiste para pruebas; en producción usa tu lib habitual
+import supabase from "@/lib/supabaseClient";
 import { uploadImageUnsigned } from "../../../lib/cloudinaryClient";
 import "../styles/capitulos.css";
 
@@ -65,8 +67,12 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   const [editingDescription, setEditingDescription] = useState(false);
   const [descDraft, setDescDraft] = useState("");
 
-  // progress bar ref (ahora ajustamos ancho desde JS, JSX sin inline styles)
+  // progress bar ref
   const progressFillRef = useRef<HTMLDivElement | null>(null);
+
+  // ---- control de toggles ----
+  const [togglingChapterIds, setTogglingChapterIds] = useState<Set<string>>(new Set());
+  const [togglingStory, setTogglingStory] = useState(false);
 
   useEffect(() => {
     if (!storyId) return;
@@ -90,7 +96,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   async function loadStory() {
     setLoading(true);
     try {
-      // Traemos story + chapters
+      // Traemos story + chapters **y** el campo status
       const { data, error } = await supabase
         .from("stories")
         .select(
@@ -102,6 +108,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
           created_at,
           updated_at,
           cover_url,
+          status,
           chapters(
             id,
             story_id,
@@ -121,7 +128,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
       if (error) throw error;
       const storyData = data;
 
-      // Obtener username/display_name por separado (select * para evitar 400)
+      // Obtener username/display_name
       let authorUsername = "—";
       try {
         if (storyData?.author_id) {
@@ -187,7 +194,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     }
   }
 
-  // suggestions
+  // suggestions...
   useEffect(() => {
     if (genreInput.trim() === "") {
       setGenreSuggestions([]);
@@ -390,11 +397,96 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     }
   }, [progressPercent]);
 
+  // -------------------------
+  // Toggle story published (status)
+  // -------------------------
+  async function toggleStoryStatus() {
+    if (!storyId || !story) return;
+    // bloquear UI
+    setTogglingStory(true);
+    const currentStatus: string = story.status ?? "draft";
+    const newStatus = currentStatus === "published" ? "draft" : "published";
+
+    try {
+      // preferimos endpoint server para validar autoría
+      const {
+        data: { session },
+        error: sessionErr,
+      } = await supabase.auth.getSession();
+
+      let token: string | null = null;
+      if (!sessionErr && session?.access_token) token = session.access_token;
+
+      if (token) {
+        const res = await fetch(`/api/stories/${storyId}/toggle`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({}), // endpoint puede ignorar body
+        });
+
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          console.warn('toggle story endpoint error, falling back', errJson);
+          throw new Error('toggle endpoint error');
+        }
+
+        const json = await res.json().catch(() => ({}));
+        const updated: any = json.story ?? json.data ?? json.updated ?? json;
+
+        // actualizar story local con lo que venga del server
+        setStory((s: any) => ({ ...s, status: updated.status ?? newStatus, updated_at: updated.updated_at ?? new Date().toISOString() }));
+        // opcional: si cambias a draft, puedes decidir redirigir fuera de la vista pública; aquí solo actualizamos.
+      } else {
+        // fallback directo: actualizar tabla stories desde cliente
+        throw new Error('No session token');
+      }
+    } catch (e) {
+      try {
+        const { data: updatedRow, error } = await supabase
+          .from('stories')
+          .update({ status: newStatus, updated_at: new Date().toISOString() })
+          .eq('id', storyId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setStory((s: any) => ({ ...s, status: updatedRow.status ?? newStatus, updated_at: updatedRow.updated_at ?? new Date().toISOString() }));
+      } catch (err) {
+        console.error('Error toggling story status', err);
+        alert('No se pudo cambiar el estado de la historia. Revisa la consola.');
+      }
+    } finally {
+      setTogglingStory(false);
+    }
+  }
+
   return (
     <main className="page">
       <header className="hero">
         <div className="heroContent">
-          <h1 className="title">{story?.title ?? "Historia"}</h1>
+          <div style={{display:'flex', alignItems:'center', gap:12}}>
+            <h1 className="title" style={{margin:0}}>{story?.title ?? "Historia"}</h1>
+
+            {/* checkbox para togglear estado de la historia */}
+            <label
+              className={`storyStatusToggle ${togglingStory ? "loading" : ""}`}
+            >
+              <input
+                type="checkbox"
+                checked={story?.status === "published"}
+                onChange={toggleStoryStatus}
+                disabled={togglingStory}
+              />
+              <span className="storyStatusToggleText">
+                {togglingStory ? "Actualizando..." : story?.status === "published" ? "Publicado" : "Borrador"}
+              </span>
+            </label>
+
+          </div>
+
           <p className="subtitle">
             por {story?.authorUsername ?? "—"}
           </p>

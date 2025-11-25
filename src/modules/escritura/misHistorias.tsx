@@ -1,4 +1,3 @@
-// components/MisHistorias.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -6,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Edit, Eye, Trash, Plus } from 'lucide-react';
 import supabase from '@/lib/supabaseClient';
-import styles from './styles/misHistorias.module.css'; // ajusta ruta si hace falta
+import styles from './styles/misHistorias.module.css';
 
 type StoryRow = {
   id: string;
@@ -15,52 +14,45 @@ type StoryRow = {
   author_id: string;
   created_at: string;
   updated_at?: string | null;
+  status?: 'published' | 'draft' | string;
 };
 
 export default function MisHistorias() {
   const router = useRouter();
+
   const [stories, setStories] = useState<StoryRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [authReady, setAuthReady] = useState(false); // espera inicialización auth
+  const [authReady, setAuthReady] = useState(false);
+
   const [showForm, setShowForm] = useState(false);
   const [newStory, setNewStory] = useState({ title: '', description: '' });
+  const [creating, setCreating] = useState(false);
 
-  // 1) Escuchar estado auth (incluye INITIAL_SESSION)
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   useEffect(() => {
     let mounted = true;
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, _payload) => {
-      console.log('[AUTH EVENT MisHistorias]', _event, _payload);
-      if (!mounted) return;
-      // Si llegó any event, intentamos marcar authReady (seguimos comprobando getSession)
-      setAuthReady(true);
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      if (mounted) setAuthReady(true);
     });
 
-    // Intentar leer sesión inicial (puede ser sincrónica en storage)
     (async () => {
-      try {
-        const s = await supabase.auth.getSession();
-        console.log('MisHistorias initial getSession =>', s);
-        if (s?.data?.session) setAuthReady(true);
-        else setAuthReady(false);
-      } catch (e) {
-        console.error('getSession error', e);
-        setAuthReady(false);
-      }
+      const s = await supabase.auth.getSession();
+      if (mounted) setAuthReady(!!s?.data?.session);
     })();
 
     return () => {
       mounted = false;
-      sub?.subscription?.unsubscribe?.();
+      try { listener?.subscription?.unsubscribe?.(); } catch {}
     };
   }, []);
 
-  // 2) Cuando authReady -> cargar historias del user
   useEffect(() => {
     let mounted = true;
 
     if (!authReady) {
       setLoading(false);
-      return () => { mounted = false; };
+      return;
     }
 
     (async () => {
@@ -69,8 +61,7 @@ export default function MisHistorias() {
         const s = await supabase.auth.getSession();
         const user = s?.data?.session?.user;
         if (!user) {
-          setStories([]);
-          setLoading(false);
+          if (mounted) setStories([]);
           return;
         }
 
@@ -80,14 +71,17 @@ export default function MisHistorias() {
           .eq('author_id', user.id)
           .order('created_at', { ascending: false });
 
+        if (!mounted) return;
+
         if (error) {
           console.error('Error cargando historias:', error);
           setStories([]);
-        } else if (mounted) {
+        } else {
           setStories(data ?? []);
         }
       } catch (err) {
         console.error(err);
+        if (mounted) setStories([]);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -96,69 +90,60 @@ export default function MisHistorias() {
     return () => { mounted = false; };
   }, [authReady]);
 
-  // Crear historia
   const handleCreate = async () => {
-    setLoading(true);
+    if (creating) return;
+    setCreating(true);
     try {
-      const s = await supabase.auth.getSession();
-      const user = s?.data?.session?.user;
-      if (!user) {
-        setLoading(false);
-        return alert('Necesitas iniciar sesión para crear una historia.');
-      }
-      if (!newStory.title.trim()) {
-        setLoading(false);
-        return alert('Ponle un título a la historia.');
-      }
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData?.session?.user;
+      if (!user) return alert('Inicia sesión.');
+
+      if (!newStory.title.trim()) return alert('Escribe un título.');
 
       const insert = {
         title: newStory.title.trim(),
-        description: newStory.description?.trim() ?? null,
+        description: newStory.description.trim() || null,
         author_id: user.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        status: 'draft',
       };
 
       const { data, error } = await supabase.from('stories').insert([insert]).select().single();
       if (error) throw error;
 
-      setStories((prev) => [data as StoryRow, ...prev]);
-      setNewStory({ title: '', description: '' });
+      setStories(prev => [data as StoryRow, ...prev]);
       setShowForm(false);
-      router.push(`/escritura/capitulos/${(data as any).id}`);
+      setNewStory({ title: '', description: '' });
+      router.push(`/escritura/capitulos/${data.id}`);
     } catch (err) {
-      console.error('Error creando historia:', err);
+      console.error(err);
       alert('No se pudo crear la historia.');
     } finally {
-      setLoading(false);
+      setCreating(false);
     }
   };
 
-  // Eliminar historia
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar esta historia? Esta acción no se puede deshacer.')) return;
-    setLoading(true);
+    if (!confirm('¿Eliminar historia?')) return;
+    setDeletingId(id);
     try {
       const { error } = await supabase.from('stories').delete().eq('id', id);
       if (error) throw error;
-      setStories((s) => s.filter((st) => st.id !== id));
+      setStories(prev => prev.filter(s => s.id !== id));
     } catch (err) {
-      console.error('Error al eliminar:', err);
+      console.error(err);
       alert('No se pudo eliminar la historia.');
     } finally {
-      setLoading(false);
+      setDeletingId(null);
     }
   };
-
-  const handleEdit = (id: string) => router.push(`/escritura/capitulos/${id}`);
 
   if (!authReady) {
     return (
       <main className={styles.container}>
         <h1 className={styles.title}>Mis Historias</h1>
-        <div className={styles.noSession}>
-          Comprobando autenticación... si hiciste login hace poco espera 1–2s o recarga la página.
-        </div>
+        <div className={styles.noSession}>Cargando sesión…</div>
       </main>
     );
   }
@@ -170,7 +155,7 @@ export default function MisHistorias() {
       <h1 className={styles.title}>Mis Historias</h1>
 
       <div className={styles.createSection}>
-        <button className={`${styles.btn} ${styles.create}`} onClick={() => setShowForm((s) => !s)}>
+        <button className={`${styles.btn} ${styles.create}`} onClick={() => setShowForm(!showForm)}>
           <Plus size={18} /> Crear Nueva Historia
         </button>
       </div>
@@ -180,32 +165,59 @@ export default function MisHistorias() {
           <h3>Crear Nueva Historia</h3>
           <div className={styles.formGroup}>
             <label>Título:</label>
-            <input value={newStory.title} onChange={(e) => setNewStory({ ...newStory, title: e.target.value })} />
+            <input value={newStory.title} onChange={e => setNewStory({ ...newStory, title: e.target.value })} />
           </div>
           <div className={styles.formGroup}>
             <label>Descripción:</label>
-            <textarea value={newStory.description} onChange={(e) => setNewStory({ ...newStory, description: e.target.value })} />
+            <textarea value={newStory.description} onChange={e => setNewStory({ ...newStory, description: e.target.value })} />
           </div>
           <div className={styles.formActions}>
-            <button className={`${styles.btn} ${styles.save}`} onClick={handleCreate}>Crear Historia</button>
+            <button className={`${styles.btn} ${styles.save}`} onClick={handleCreate}>{creating ? 'Creando…' : 'Crear'}</button>
             <button className={`${styles.btn} ${styles.cancel}`} onClick={() => setShowForm(false)}>Cancelar</button>
           </div>
         </motion.div>
       )}
 
       <section className={styles.grid}>
-        {stories.length === 0 && <div>No tienes historias todavía.</div>}
+        {stories.length === 0 && <div>No tienes historias aún.</div>}
+
         {stories.map((st, idx) => (
-          <motion.div key={st.id} className={styles.card} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
+          <motion.div
+            key={st.id}
+            className={styles.card}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.05 }}
+          >
             <div className={styles.cardHeader}>
-              <h2>{st.title}</h2>
-              <span className={styles.badge}>Privada</span>
+              <div className={styles.cardMeta}>
+                <h2 className={styles.cardTitle}>{st.title}</h2>
+                {/* fecha creada */}
+                <div className={styles.createdLine}>
+                  <strong>Creado:</strong> {new Date(st.created_at).toLocaleDateString('es-ES')}
+                </div>
+              </div>
+
+              {/* SOLO BADGE (Privada / Publicado) */}
+              <span className={`${styles.badge} ${st.status === 'published' ? styles.badgePublished : styles.badgeDraft}`}>
+                {st.status === 'published' ? 'Publicado' : 'Privada'}
+              </span>
             </div>
-            <p><strong>Creado:</strong> {new Date(st.created_at).toLocaleDateString('es-ES')}</p>
+
+            {/* NO DESCRIPTION SHOWN */}
+
             <div className={styles.actions}>
-              <button className={`${styles.btn} ${styles.view}`} onClick={() => router.push(`/biblioteca/obra/${st.id}`)}><Eye size={18}/> Ver</button>
-              <button className={`${styles.btn} ${styles.edit}`} onClick={() => handleEdit(st.id)}><Edit size={18}/> Editar</button>
-              <button className={`${styles.btn} ${styles.delete}`} onClick={() => handleDelete(st.id)}><Trash size={18}/> Eliminar</button>
+              <button className={`${styles.btn} ${styles.view}`} onClick={() => router.push(`/biblioteca/obra/${st.id}`)}>
+                <Eye size={18} /> Ver
+              </button>
+
+              <button className={`${styles.btn} ${styles.edit}`} onClick={() => router.push(`/escritura/capitulos/${st.id}`)}>
+                <Edit size={18} /> Editar
+              </button>
+
+              <button className={`${styles.btn} ${styles.delete}`} onClick={() => handleDelete(st.id)} disabled={deletingId === st.id}>
+                {deletingId === st.id ? 'Eliminando...' : <><Trash size={18} /> Eliminar</>}
+              </button>
             </div>
           </motion.div>
         ))}
