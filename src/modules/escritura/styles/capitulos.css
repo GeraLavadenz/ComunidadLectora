@@ -103,3 +103,68 @@
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------------------------
+   ESTILO DEL TOGGLE DE HISTORIA
+--------------------------- */
+
+.storyStatusToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.storyStatusToggle:hover {
+  background: var(--surface-hover, rgba(255,255,255,0.06));
+}
+
+/* Checkbox bonito */
+.storyStatusToggle input[type="checkbox"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--stroke, #555);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s ease;
+}
+
+.storyStatusToggle input[type="checkbox"]:checked {
+  background: var(--accent, #4CAF50);
+  border-color: var(--accent, #4CAF50);
+}
+
+.storyStatusToggle input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-size: 12px;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.storyStatusToggle input[type="checkbox"]:checked::after {
+  opacity: 1;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.5 8.5L6.5 11.5L12.5 5.5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Texto del estado */
+.storyStatusToggleText {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.storyStatusToggle.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
