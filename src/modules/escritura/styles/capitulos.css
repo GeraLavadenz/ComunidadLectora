@@ -90,7 +90,7 @@
 .btn:active{ transform: translateY(1px) }
 .create{ background: linear-gradient(90deg, var(--brand), var(--brand-2)); color: var(--bg); border-color: var(--brand) }
 .save{ background: linear-gradient(90deg, var(--ok), #2dbf93); color: var(--bg); border-color: var(--ok) }
-.cancel{ background: transparent; border-color: var(--stroke); color: var(--muted) }
+.cancel{ background: transparent; border-color: var(--stroke); color:var(--muted) }
 .cancel:hover{ background: rgba(255,176,32,.1); color: var(--warn) }
 
 .spinner {
@@ -103,6 +103,135 @@
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+
+/* ---- Additions / mappings for component classes without inline styles ---- */
+
+.chipsList { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+.tagsSection { display:flex; flex-direction:column; gap:8px; }
+.suggestionsList { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+.suggestionBtn { padding:6px 10px; border-radius:10px; border:1px solid var(--stroke); background:transparent; color:var(--text); cursor:pointer; }
+.suggestionBtn:hover { background: rgba(110,231,255,.06); }
+
+.coverContainer { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+.coverImage { width:96px; height:96px; object-fit:cover; border-radius:8px; border:1px solid var(--stroke); }
+.coverPlaceholder { width:96px; height:96px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px dashed var(--stroke); color:var(--muted); background: linear-gradient(180deg, var(--surface), var(--surface-2)); }
+.coverBtn { cursor:pointer; padding:8px 10px; border:1px solid var(--stroke); border-radius:10px; background:transparent; color:var(--text); }
+
+.modalOverlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; z-index:1200; }
+.modalBox { width:min(900px,95%); background: linear-gradient(180deg, var(--surface), var(--surface-2)); border:1px solid var(--stroke); border-radius:12px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+
+.formActionsRow { display:flex; align-items:center; gap:12px; justify-content:space-between; margin-top:12px; }
+.formBtns { display:flex; gap:8px; }
+.textarea { width: 100%;min-height:300px; padding:12px 14px; border-radius:12px; border:1px solid var(--stroke); background:var(--surface); color:var(--text); resize:vertical; }
+
+.searchInput { max-width:320px; }
+.publicationCard { display:flex; flex-direction:column; gap:8px; }
+
+.input.searchInput { padding:10px 12px; }
+
+/* Ensure chipInput stretches on narrow screens */
+@media (max-width: 860px) {
+  .chipInput { max-width:100%; }
+  .coverContainer { align-items:flex-start; }
+  .toolbar { gap:8px; }
+  .chapterGrid { grid-template-columns: 1fr; }
+}
+
+/* small accessibility focus */
+.btn:focus, .btnGhost:focus, .suggestionBtn:focus, .chipRemove:focus { outline: 3px solid rgba(110,231,255,.12); outline-offset:2px; border-radius:8px; }
+
+.coverSection {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+  gap: 12px;
+}
+
+.coverTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.coverImage {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+}
+
+.coverPlaceholder {
+  width: 100%;
+  height: 220px;
+  border-radius: 12px;
+  border: 1px dashed var(--stroke);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.coverInput {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* --- variables y utilidades --- */
+.coverContainer, .coverSection { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.coverImage { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid var(--stroke); }
+.coverPlaceholder { width: 96px; height: 96px; border-radius: 8px; display:flex; align-items:center; justify-content:center; color:var(--muted); border:1px dashed var(--stroke); background: linear-gradient(180deg,var(--surface),var(--surface-2)); }
+
+/* botón lápiz (quitamos inline marginLeft) */
+.editBtn { margin-left: 12px; padding: 6px 8px; border-radius: 8px; font-size: 0.95rem; }
+
+/* descripción editor */
+.descEditorWrap { margin-bottom: 12px; }
+.descEditorActions { margin-top: 8px; display:flex; gap:8px; }
+
+/* publication card: progress */
+.progressBar { height: 12px; border-radius: 999px; background: #091120; border: 1px solid var(--stroke); overflow: hidden; width: 100%; }
+.progressFill { height: 100%; background: linear-gradient(90deg, var(--brand), var(--brand-2)); width: 0%; transition: width .6s ease; }
+
+/* cover controls */
+.coverControls { display:flex; gap:8px; align-items:center; margin-top:8px; }
+.coverInput { min-width: 180px; }
+
+/* chips layout */
+.tagsSection { margin-top: 8px; }
+.chipsList { display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 8px; }
+.suggestionsList { margin-top: 8px; display:flex; gap:8px; flex-wrap:wrap; }
+.suggestionBtn { border-radius: 10px; padding:6px 10px; background:transparent; border:1px solid var(--stroke); cursor:pointer; }
+
+/* toolbar tweaks */
+.toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+.searchInput { min-width:260px; }
+
+/* chapter card minor tweaks */
+.chapterInfo { display:flex; gap:10px; align-items:center; }
+.chapterStatus { text-align:right; }
+
+/* responsive small screens */
+@media (max-width:860px) {
+  .heroContent { padding: 12px; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+}
+
+.row {
+  display: flex;
+  align-items: center;   /* centra vertical */
+  justify-content: space-between; /* uno a la izq, otro a la der */
+  gap: 12px;
+}
+
 
 /* ---------------------------
    ESTILO DEL TOGGLE DE HISTORIA

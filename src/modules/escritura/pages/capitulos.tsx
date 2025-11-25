@@ -5,7 +5,8 @@ import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 // uso el cliente local que subiste para pruebas; en producción usa tu lib habitual
 import supabase from "@/lib/supabaseClient";
-import { uploadImageUnsigned } from "@/lib/";
+
+import { uploadImageUnsigned } from "../../../lib/cloudinaryClient"
 import "../styles/capitulos.css";
 
 console.log("cloud:", process.env.NEXT_PUBLIC_CLOUDINARY_CLOUDNAME, "preset:", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);

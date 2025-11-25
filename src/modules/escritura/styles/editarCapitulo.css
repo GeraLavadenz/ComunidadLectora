@@ -1,154 +1,205 @@
-/* Styles for EditarCapitulo component */
+/* =========================================
+   LAYOUT GENERAL - CENTRADO
+========================================= */
 
-/* AI Button Container */
-.aiButtonContainer {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
+.centerContainer {
+  max-width: 1350px;
+  margin: 0 auto;
+  padding: 20px;
+  width: 100%;
 }
 
-/* AI Button */
-.aiButton {
-  background: var(--brand);
-  color: var(--bg);
-  border: none;
-  border-radius: 8px;
-  padding: 12px 24px;
-  cursor: pointer;
+/* Tarjeta principal */
+.cardWide {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  padding: 24px 28px;
+  box-sizing: border-box;
+}
+
+.cardTitle {
+  margin-bottom: 12px;
+}
+
+/* =========================================
+   FORMULARIO Y DISTRIBUCIÓN
+========================================= */
+
+.formRow {
+  display: flex;
+  width: 100%;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* Cuando la IA está abierta → modo dos columnas */
+.formWithAISide .formRow {
+  flex-direction: row;
+}
+
+/* Cuando la IA está cerrada → editor full width */
+.noAI .editorColumn {
+  width: 100%;
+}
+
+/* Dos columnas cuando IA está activa */
+.withAI .editorColumn {
+  width: 60%;
+}
+
+.withAI .aiColumn {
+  width: 40%;
+}
+
+/* Columnas */
+.editorColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* =========================================
+   FILA DEL TÍTULO + BOTÓN KOLLA IA
+========================================= */
+
+.titleRow {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: bold;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.titleField {
+  flex: 1;
+}
+
+/* Contenedor del botón de IA */
+.iaButtonWrapper {
+  display: flex;
+  align-items: center;
+}
+
+/* =========================================
+   TEXTAREAS Y INPUTS
+========================================= */
+
+.textarea,
+.contentTextarea,
+.mainTextarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--stroke);
+  background: var(--surface-2);
+  resize: vertical;
+  color: var(--text);
+  box-sizing: border-box;
+  line-height: 1.55;
+}
+
+.contentTextarea {
+  min-height: 420px;
+}
+
+/* =========================================
+   BOTÓN KOLLA IA (estético)
+========================================= */
+
+.kollaIAButton {
+  padding: 12px 22px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--bg);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+  transition: 0.25s ease;
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-/* Meta Section */
-.metaSection {
-  width: 100%;
-  max-width: 100%;
-  padding: 0;
-  margin: 0;
+.kollaIAButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.35);
 }
 
-/* Card Article */
-.cardArticle {
-  width: 100%;
+.kollaIAButton.active {
+  background: linear-gradient(90deg, var(--warn), var(--brand));
+  box-shadow: 0 0 20px rgba(255,170,60,0.35);
+}
+
+/* =========================================
+   PANEL IA
+========================================= */
+
+.aiColumn {
+  background: var(--surface-2);
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  padding: 18px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 20px;
-  box-sizing: border-box;
+  gap: 18px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
 }
 
-/* Form Group */
-.formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-/* Label */
-.label {
-  display: block;
-}
-
-/* Input */
-.input {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Textarea */
-.textarea {
-  width: 100%;
-  min-height: 80px;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-/* Content Textarea */
-.contentTextarea {
-  width: 100%;
-  min-height: 400px;
-  resize: vertical;
-  font-family: monospace;
-  font-size: 14px;
-  box-sizing: border-box;
-  flex: 1;
-}
-
-/* Comparison Container */
-.comparisonContainer {
-  width: 100%;
-  max-width: 100%;
-  display: flex;
-  gap: 16px;
-  flex: 1;
-}
-
-/* Comparison Column */
-.comparisonColumn {
-  flex: 1 1 50%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Comparison Header */
-.comparisonHeader {
-  margin-bottom: 10px;
-  font-size: 14px;
-}
-
-.comparisonHeaderOriginal {
-  color: var(--text-secondary);
-}
-
-.comparisonHeaderCorrected {
-  color: var(--brand);
-}
-
-/* Corrected Textarea */
-.correctedTextarea {
-  width: 100%;
-  min-height: 400px;
-  resize: vertical;
-  font-family: monospace;
-  font-size: 14px;
-  box-sizing: border-box;
-  flex: 1;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg-secondary);
-}
-
-/* Correction Buttons Container */
-.correctionButtons {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-/* Published Toggle Container */
-.publishedToggle {
+/* Header IA */
+.aiHeader {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: space-between;
+  gap: 14px;
 }
 
-/* Bottom Section */
-.bottomSection {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 20px 50px;
-}
-
-/* Bottom Buttons */
-.bottomButtons {
+.aiHeaderActions {
   display: flex;
-  gap: 1rem;
-  justify-content: center;
+  gap: 10px;
+}
+
+/* Botones IA internos */
+.aiBtn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #0b1220;
+  border: 2px solid #6ee7ff55;
+  color: #6ee7ff;
+  text-shadow: 0 0 8px #6ee7ff;
+  box-shadow: 0 0 10px #6ee7ff40;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.aiBtn:hover {
+  border-color: #6ee7ff;
+  box-shadow: 0 0 20px #6ee7ff80;
+  transform: translateY(-2px);
+}
+
+.aiBtn.active {
+  border-color: #7c4dff;
+  color: #7c4dff;
+  text-shadow: 0 0 6px #7c4dff;
+  box-shadow: 0 0 20px #7c4dff80;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1100px) {
+  .formRow,
+  .formWithAISide .formRow {
+    flex-direction: column;
+  }
+
+  .editorColumn, .aiColumn {
+    width: 100% !important;
+  }
 }
