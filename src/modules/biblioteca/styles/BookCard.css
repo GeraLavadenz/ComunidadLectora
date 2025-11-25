@@ -1,4 +1,160 @@
-/* BookCard.css */
+/* CARD PRINCIPAL */
 .book-card {
-  /* Add any specific styles if needed, but since using Tailwind, might be minimal */
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(120,120,120,0.35);
+  background-color: #0f1720;
+  color: #f5f7f8;
+}
+
+/* GRID INTERNO */
+.book-card-grid {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  min-width: 0;
+}
+
+/* PORTADA */
+.book-cover {
+  position: relative;
+}
+
+.book-cover-inner {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background-color: #111217;
+  display: grid;
+  place-items: center;
+}
+
+.book-cover-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.book-card:hover .book-cover-inner img {
+  transform: scale(1.05);
+}
+
+/* SIN PORTADA */
+.book-nocover {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+/* INFO */
+.book-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* TÍTULO */
+.book-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* AUTOR */
+.book-author {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+.book-author strong {
+  color: #e6eef0;
+}
+
+/* TAGS */
+.book-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.book-tag {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  border: 1px solid rgba(120,120,120,0.35);
+  color: #d1d5db;
+}
+
+.book-tag-primary {
+  background-color: rgba(16,185,129,0.08);
+  color: #34d399;
+}
+
+/* ACCIONES */
+.book-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* BOTÓN BASE */
+.book-btn {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid rgba(120,120,120,0.2);
+  cursor: pointer;
+  transition: background-color 0.18s ease, transform 0.12s ease;
+}
+
+/* BOTÓN PRIMARIO */
+.book-btn-primary {
+  background-color: rgba(16,185,129,0.08);
+  color: #9ee6be;
+  border-color: rgba(16,185,129,0.22);
+}
+
+.book-btn-primary:hover {
+  background-color: rgba(16,185,129,0.14);
+  transform: translateY(-1px);
+}
+
+/* BOTÓN SECUNDARIO */
+.book-btn-secondary {
+  color: #e6eef0;
+  background: transparent;
+  border-color: rgba(120,120,120,0.35);
+}
+
+.book-btn-secondary:hover {
+  background-color: rgba(255,255,255,0.03);
+  transform: translateY(-1px);
+}
+
+/* GLOW */
+.book-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.2;
+  transition: opacity 0.32s ease;
+  background-image:
+    radial-gradient(600px 120px at 20% 0%, rgba(16,185,129,0.12), rgba(16,185,129,0) 60%),
+    radial-gradient(600px 120px at 80% 100%, rgba(16,185,129,0.12), rgba(16,185,129,0) 60%);
+}
+
+.book-card:hover .book-glow {
+  opacity: 0.35;
 }
