@@ -1,9 +1,14 @@
+import React from "react";
 import Header from "@/components/header/header";
 import Footer from "@/components/footer/footer";
-import EditarCapitulo from "../../../../../../modules/escritura/pages/editarCapitulo";
+import EditarCapitulo from "@/modules/escritura/pages/editarCapitulo";
 
-export default async function Page({ params }: { params: Promise<{ id: string; chapterId: string }> }) {
-  const { id, chapterId } = await params;
+interface Props {
+  params: { id: string; chapterId: string };
+}
+
+export default function Page({ params }: Props) {
+  const { id, chapterId } = params;
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
