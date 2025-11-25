@@ -1,18 +1,56 @@
-/* Books Grid Styles */
+/* --- Books grid: columnas fluidas y responsive --- */
 .books-grid {
   display: grid;
-  gap: 1rem; /* 4 */
-  grid-template-columns: 1fr;
+  gap: 1rem;                 /* separación entre tarjetas */
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  justify-items: stretch;   /* que las celdas ocupen todo el ancho del track */
+  align-items: start;
+  width: 100%;
+  /* opcional: centrar y limitar ancho máximo del grid */
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.5rem; /* pequeño padding para que no pegue al borde */
 }
 
+/* Ajustes finos según pantalla (opcional, deja auto-fill si prefieres menos reglas) */
+@media (max-width: 420px) {
+  .books-grid { gap: 0.6rem; grid-template-columns: 1fr; padding: 0.4rem; }
+}
 @media (min-width: 640px) {
-  .books-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .books-grid { gap: 1rem; } /* mantiene 2-3 columnas según espacio */
+}
+@media (min-width: 1600px) {
+  .books-grid { gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 }
 
-@media (min-width: 1280px) {
-  .books-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+/* --- Asegúrate que cada BookCard ocupe toda la celda y alinee acciones abajo --- */
+/* Si tu componente BookCard usa la clase .book-card (como te pasé antes), pega esto: */
+.book-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;            /* clave: obliga a la tarjeta a rellenar la celda */
+  box-sizing: border-box;
+}
+
+/* Dentro de la tarjeta: forzar que el contenedor derecho (info) empuje el footer al final */
+.book-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1 1 auto;          /* crece para ocupar el espacio y empujar acciones abajo */
+}
+
+/* Si tu layout interno usa otro nombre para .book-info, adapta el selector */
+/* --- Opcional: controlar la portada para que tenga tamaño consistente --- */
+.book-cover-inner {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  min-height: 160px;       /* evita mini-portadas en pantallas pequeñas */
+}
+
+/* --- Mejor visibilidad en grillas densas: sombra y separación visual --- */
+.book-card {
+  padding: 0.8rem;
+  border-radius: 12px;
+  background-clip: padding-box;
 }
