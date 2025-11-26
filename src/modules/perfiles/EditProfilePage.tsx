@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import supabase from '@/lib/supabaseClient';
 
 type Profile = {
   id: string;
@@ -18,7 +18,6 @@ type Profile = {
 };
 
 export default function EditProfilePage() {
-  const supabase = createClientComponentClient();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -182,7 +181,7 @@ export default function EditProfilePage() {
                     setAvatarFile(null);
                     // reload profile from db quickly
                     (async () => {
-                      const { data, error } = await supabase.from('profiles').select('*').eq('id', profile.id).single();
+                      const { data, error } = await supabase.from('profiles').select('*').eq('id', profile!.id).single();
                       if (!error) setProfile(data as Profile);
                     })();
                   }}
