@@ -34,7 +34,7 @@ export default function GenreMenu() {
 
         if (sbError) throw sbError;
 
-        const mapped = (data ?? []).map((row: any) => {
+        const mapped = (data ?? []).map((row: { id: string, name: string }) => {
           const slug =
             row.name
               .toLowerCase()
@@ -54,9 +54,9 @@ export default function GenreMenu() {
         });
 
         if (mounted) setGenres(mapped);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
-        if (mounted) setError(err.message ?? 'Error desconocido');
+        if (mounted) setError(err instanceof Error ? err.message : 'Error desconocido');
       } finally {
         if (mounted) setLoading(false);
       }

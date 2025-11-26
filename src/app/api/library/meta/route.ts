@@ -24,8 +24,9 @@ export async function GET() {
     }
 
     return NextResponse.json({ genres: genresData ?? [], tags: tagsData ?? [] });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
     console.error('api/library/meta ERROR:', err);
-    return NextResponse.json({ error: err?.message ?? 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: errMsg ?? 'Error interno' }, { status: 500 });
   }
 }
