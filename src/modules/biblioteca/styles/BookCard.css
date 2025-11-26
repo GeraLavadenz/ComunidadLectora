@@ -27,7 +27,7 @@
   aspect-ratio: 2 / 3;
   overflow: hidden;
   border-radius: 0.75rem;
-  background-color: #111217;
+  background-color: var(--muted);
   display: grid;
   place-items: center;
 }

@@ -6,11 +6,6 @@ import { ChevronDown } from 'lucide-react';
 import styles from './styles/GenreMenu.module.css';
 import supabase from '@/lib/supabaseClient';
 
-interface Tag {
-  id: string;
-  name: string;
-}
-
 type GenreItem = {
   id: string;
   title: string;

@@ -4,8 +4,8 @@
 
 .container {
   min-height: 100vh;
-  background-color: rgb(10 10 10); /* neutral-950 */
-  color: rgb(243 244 246); /* neutral-100 */
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 .section {

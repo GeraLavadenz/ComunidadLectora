@@ -8,6 +8,14 @@
  * - Con mensaje de error claro
  */
 
+interface CloudinaryResponse {
+  secure_url: string;
+  public_id: string;
+  error?: {
+    message: string;
+  };
+}
+
 export async function uploadImageUnsigned(file: File, preset?: string) {
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUDNAME;
     const uploadPreset =
@@ -46,11 +54,11 @@ export async function uploadImageUnsigned(file: File, preset?: string) {
         body: formData,
       });
     } catch (networkError) {
-      throw new Error("No se pudo conectar a Cloudinary: " + (networkError as any)?.message);
+      throw new Error("No se pudo conectar a Cloudinary: " + (networkError instanceof Error ? networkError.message : String(networkError)));
     }
   
     const text = await res.text();
-    let data: any;
+    let data: unknown;
     try {
       data = JSON.parse(text);
     } catch {
