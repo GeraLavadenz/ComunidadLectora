@@ -9,7 +9,7 @@ const TerminosCondiciones: React.FC = () => {
       <Header />
       <div className={styles.terminosContainer}>
         <div className={styles.heroSection}>
-          <h1 className={styles.mainTitle}>Términos y Condiciones</h1>
+          <h1 className={styles.mainTitle}>T&eacute;rminos y Condiciones</h1>
           <p className={styles.heroSubtitle}>
             Reglas y condiciones de uso de Comunidad Lectora Bolivia
           </p>
@@ -19,8 +19,8 @@ const TerminosCondiciones: React.FC = () => {
           <div className={styles.card}>
             <h2>1. Aceptación de los Términos</h2>
             <p>
-              Al acceder y utilizar Comunidad Lectora Bolivia, aceptas estar sujeto a estos términos y condiciones de uso.
-              Si no estás de acuerdo con alguna parte de estos términos, no podrás acceder al servicio.
+              Al acceder y utilizar Comunidad Lectora Bolivia, aceptas estar sujeto a estos "t&eacute;rminos y condiciones de uso".
+              Si no est&aacute;s de acuerdo con alguna parte de estos t&eacute;rminos, no podr&aacute;s acceder al servicio.
             </p>
           </div>
 

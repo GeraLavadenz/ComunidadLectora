@@ -84,7 +84,6 @@ const resolvedStoryId = (() => {
   const progressFillRef = useRef<HTMLDivElement | null>(null);
 
   // ---- control de toggles ----
-  const [togglingChapterIds, setTogglingChapterIds] = useState<Set<string>>(new Set());
   const [togglingStory, setTogglingStory] = useState(false);
 
   const publishedCount = chapters.filter((c) => c.is_published).length;
@@ -112,7 +111,6 @@ const resolvedStoryId = (() => {
     } else {
       setGenreSuggestions([]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genreInput]);
 
   // fetchTagSuggestions function remains unchanged
@@ -124,7 +122,6 @@ const resolvedStoryId = (() => {
     } else {
       setTagSuggestions([]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tagInput]);
 
   if (!storyId) {
@@ -371,19 +368,6 @@ const resolvedStoryId = (() => {
       alert("Error subiendo portada: " + errorMsg);
     } finally {
       setUploadingCover(false);
-    }
-  }
-
-
-  // manual cover URL
-  async function handleCoverUrlChange(newUrl: string) {
-    if (!storyId) return;
-    setStory((s: Story | null) => (s ? { ...s, cover_url: newUrl } : s));
-    try {
-      const { error } = await supabase.from("stories").update({ cover_url: newUrl }).eq("id", storyId);
-      if (error) console.warn("Error updating cover_url", error);
-    } catch (e) {
-      console.warn(e);
     }
   }
 
@@ -638,7 +622,7 @@ const resolvedStoryId = (() => {
             <h4 className="coverTitle">Portada</h4>
 
             {story?.cover_url ? (
-              <img src={story.cover_url} alt="cover" className="coverImage" />
+              <Image src={story.cover_url} alt="cover" className="coverImage" width={300} height={400} />
             ) : (
               <div className="coverPlaceholder">Sin portada</div>
             )}

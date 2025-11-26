@@ -68,13 +68,13 @@ export function removeChip(list: string[] | undefined, value: string): string[] 
 }
 
 export function filterChapters(
-  story: any,
+  story: Story,
   query: string,
   onlyPublished: boolean,
   sortBy: string
-): any[] {
+): Chapter[] {
   const q = (query || "").trim().toLowerCase();
-  let arr = (story?.chapters || []).filter((c: any) => {
+  let arr = (story?.chapters || []).filter((c: Chapter) => {
     const num = c.number ?? 0;
     const isPub = (c.isPublished !== undefined) ? c.isPublished : Boolean(c.is_published);
     const hit =
@@ -86,13 +86,13 @@ export function filterChapters(
 
   switch (sortBy) {
     case "num-desc":
-      arr = [...arr].sort((a: any, b: any) => (b.number ?? 0) - (a.number ?? 0));
+      arr = [...arr].sort((a: Chapter, b: Chapter) => (b.number ?? 0) - (a.number ?? 0));
       break;
     case "title":
-      arr = [...arr].sort((a: any, b: any) => a.title.localeCompare(b.title));
+      arr = [...arr].sort((a: Chapter, b: Chapter) => a.title.localeCompare(b.title));
       break;
     default:
-      arr = [...arr].sort((a: any, b: any) => (a.number ?? 0) - (b.number ?? 0));
+      arr = [...arr].sort((a: Chapter, b: Chapter) => (a.number ?? 0) - (b.number ?? 0));
   }
   return arr;
 }

@@ -57,7 +57,7 @@ export default function EditProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [supabase]);
+  }, []);
 
   async function uploadAvatar(profileId: string) {
     if (!avatarFile) return profile?.avatar_url ?? null;
