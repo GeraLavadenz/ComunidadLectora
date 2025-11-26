@@ -88,8 +88,9 @@ export default function RegisterForm({
 
       // Redirigir automáticamente después del registro exitoso
       router.push(form.role === 'author' ? '/dashboard' : '/biblioteca');
-    } catch (error: any) {
-      const msg = error?.message || "Error al registrar.";
+    } catch (error: unknown) {
+      const err = error as Error;
+      const msg = err.message || "Error al registrar.";
 
       if (msg.includes("User already registered"))
         setErr("Ese correo ya está registrado.");
@@ -110,8 +111,9 @@ export default function RegisterForm({
     try {
       await signInWithGoogle(form.role); // ← ahora esta función es la nueva
       // Aquí NO necesitas hacer nada más, Supabase te redirige solo
-    } catch (error: any) {
-      setErr("Error con Google: " + error.message);
+    } catch (error: unknown) {
+      const err = error as Error;
+      setErr("Error con Google: " + err.message);
       setOauthLoading(false);
     }
   };
