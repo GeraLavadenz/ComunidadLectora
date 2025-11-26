@@ -41,7 +41,6 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
 
   // IA panel state
   const [showAI, setShowAI] = useState(false);
-  const [aiCorrectedText, setAiCorrectedText] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Cargar capítulo desde Supabase
@@ -67,9 +66,9 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
       setLocalContent(data.content ?? "");
       setIsPublished(!!data.is_published);
       setPublishedAt(data.published_at ?? null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error cargando capítulo", err);
-      alert("Error cargando capítulo: " + (err?.message ?? JSON.stringify(err)));
+      alert("Error cargando capítulo: " + (err instanceof Error ? err.message : JSON.stringify(err)));
     } finally {
       setLoading(false);
     }
@@ -86,7 +85,7 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
         .maybeSingle();
       if (error) throw error;
       if (data) setStoryTitle(data.title ?? null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn("No se pudo cargar título de story", err);
       setStoryTitle(null);
     }
@@ -113,15 +112,15 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
         published_at: isPublished ? (publishedAt ?? new Date().toISOString()) : null,
         updated_at: new Date().toISOString(),
       };
-      const { data, error } = await supabase.from("chapters").update(payload).eq("id", chapterId).select().maybeSingle();
+      const { error } = await supabase.from("chapters").update(payload).eq("id", chapterId).select().maybeSingle();
       if (error) throw error;
       setChapter((prev) => (prev ? { ...prev, ...payload } as ChapterRow : prev));
       setPublishedAt(payload.published_at);
       alert("Capítulo guardado correctamente");
       router.push(`/escritura/capitulos/${storyId}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error guardando capítulo", err);
-      alert("Error guardando capítulo: " + (err?.message ?? JSON.stringify(err)));
+      alert("Error guardando capítulo: " + (err instanceof Error ? err.message : JSON.stringify(err)));
     } finally {
       setSaving(false);
     }
@@ -136,7 +135,6 @@ export default function EditarCapitulo({ storyId, chapterId }: { storyId: string
 
   // IA integration: aplicamos la corrección recibida y cerramos el panel
   function handleApplyAICorrection(corrected: string) {
-    setAiCorrectedText(corrected);
     setLocalContent(corrected);
     setShowAI(false);
   }

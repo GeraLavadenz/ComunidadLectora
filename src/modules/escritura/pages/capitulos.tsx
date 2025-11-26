@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
 // uso el cliente local que subiste para pruebas; en producción usa tu lib habitual
 import supabase from "@/lib/supabaseClient";
@@ -59,7 +60,6 @@ const resolvedStoryId = (() => {
     chapters?: ChapterDB[];
   }
 
-  const [loading, setLoading] = useState(false);
   const [story, setStory] = useState<Story | null>(null);
   const [chapters, setChapters] = useState<ChapterDB[]>([]);
   const [query, setQuery] = useState("");
@@ -87,11 +87,45 @@ const resolvedStoryId = (() => {
   const [togglingChapterIds, setTogglingChapterIds] = useState<Set<string>>(new Set());
   const [togglingStory, setTogglingStory] = useState(false);
 
+  const publishedCount = chapters.filter((c) => c.is_published).length;
+  const progressPercent = chapters.length ? Math.round((publishedCount / chapters.length) * 100) : 0;
+
+  // actualizar ancho de la barra de progreso sin estilos inline en JSX
+  useEffect(() => {
+    if (progressFillRef.current) {
+      progressFillRef.current.style.width = `${progressPercent}%`;
+    }
+  }, [progressPercent]);
+
   useEffect(() => {
     if (!storyId) return;
     loadStory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyId]);
+
+  // suggestions...
+  // move early returns out of useEffect to avoid conditional hook calls
+  // use separate useEffect with guard for genreInput
+  useEffect(() => {
+    if (genreInput.trim() !== "") {
+      fetchTagSuggestions(genreInput.trim(), "genre");
+    } else {
+      setGenreSuggestions([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genreInput]);
+
+  // fetchTagSuggestions function remains unchanged
+
+  // use separate useEffect with guard for tagInput
+  useEffect(() => {
+    if (tagInput.trim() !== "") {
+      fetchTagSuggestions(tagInput.trim(), "tag");
+    } else {
+      setTagSuggestions([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tagInput]);
 
   if (!storyId) {
     return (
@@ -107,7 +141,6 @@ const resolvedStoryId = (() => {
   }
 
   async function loadStory() {
-    setLoading(true);
     try {
       // Traemos story + chapters **y** el campo status
       const { data, error } = await supabase
@@ -205,34 +238,8 @@ const resolvedStoryId = (() => {
       const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
       console.error("Error cargando historia", err);
       alert("Error cargando historia: " + errorMsg);
-    } finally {
-      setLoading(false);
     }
   }
-
-  // suggestions...
-  // move early returns out of useEffect to avoid conditional hook calls
-  // use separate useEffect with guard for genreInput
-  useEffect(() => {
-    if (genreInput.trim() !== "") {
-      fetchTagSuggestions(genreInput.trim(), "genre");
-    } else {
-      setGenreSuggestions([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genreInput]);
-  
-  // fetchTagSuggestions function remains unchanged
-
-  // use separate useEffect with guard for tagInput
-  useEffect(() => {
-    if (tagInput.trim() !== "") {
-      fetchTagSuggestions(tagInput.trim(), "tag");
-    } else {
-      setTagSuggestions([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tagInput]);
 
   async function fetchTagSuggestions(q: string, type: "genre" | "tag") {
     if (suggestionAbortRef.current) {
@@ -415,16 +422,6 @@ const resolvedStoryId = (() => {
       return c.title.toLowerCase().includes(q) || (c.content || "").toLowerCase().includes(q) || (c.chapter_number + "").includes(q);
     })
     .sort((a, b) => (sortBy === "number" ? a.chapter_number - b.chapter_number : a.title.localeCompare(b.title)));
-
-  const publishedCount = chapters.filter((c) => c.is_published).length;
-  const progressPercent = chapters.length ? Math.round((publishedCount / chapters.length) * 100) : 0;
-
-  // actualizar ancho de la barra de progreso sin estilos inline en JSX
-  useEffect(() => {
-    if (progressFillRef.current) {
-      progressFillRef.current.style.width = `${progressPercent}%`;
-    }
-  }, [progressPercent]);
 
   // -------------------------
   // Toggle story published (status)
