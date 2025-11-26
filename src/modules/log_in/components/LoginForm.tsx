@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
 import libroAbierto from '../assets/icons/libro-abierto.png';

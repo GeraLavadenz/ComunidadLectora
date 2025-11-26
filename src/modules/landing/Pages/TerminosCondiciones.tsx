@@ -76,7 +76,7 @@ const TerminosCondiciones: React.FC = () => {
           <div className={styles.card}>
             <h2>8. Contacto</h2>
             <p>
-              Si tienes preguntas sobre estos términos y condiciones, puedes contactarnos a través de nuestro formulario
+nuestro "formulario"
               de contacto o enviando un correo electrónico a soporte@comunidadlectorabolivia.com.
             </p>
           </div>

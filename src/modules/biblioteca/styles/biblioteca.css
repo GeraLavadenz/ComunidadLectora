@@ -4,8 +4,8 @@
 
 .container {
   min-height: 100vh;
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: var(--main-background);
+  color: var(--main-foreground);
 }
 
 .section {
@@ -47,8 +47,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem; /* 2 */
-  background-color: rgb(38 38 38); /* neutral-800 */
-  border: 1px solid rgb(64 64 64); /* neutral-700 */
+  background-color: var(--main-muted);
+  border: 1px solid var(--border);
   border-radius: 0.75rem; /* xl */
   padding-left: 0.75rem; /* 3 */
   padding-right: 0.75rem; /* 3 */
