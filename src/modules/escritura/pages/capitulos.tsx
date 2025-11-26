@@ -32,9 +32,9 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   const hookParams = useParams();
   const router = useRouter();
 
-  const resolvedStoryId = (() => {
+const resolvedStoryId = (() => {
     if (params && params.id) return params.id;
-    if (hookParams && (hookParams as any).id) return (hookParams as any).id;
+    if (hookParams && typeof hookParams === 'object' && 'id' in hookParams && typeof (hookParams as Record<string, unknown>).id === 'string') return (hookParams as { id: string }).id;
     if (typeof window !== "undefined") {
       const parts = window.location.pathname.split("/").filter(Boolean);
       const idx = parts.lastIndexOf("capitulos");
@@ -46,8 +46,21 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
 
   const storyId = resolvedStoryId;
 
+  interface Story {
+    id?: string;
+    title?: string;
+    description?: string | null;
+    author_id?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    cover_url?: string | null;
+    status?: string;
+    authorUsername?: string;
+    chapters?: ChapterDB[];
+  }
+
   const [loading, setLoading] = useState(false);
-  const [story, setStory] = useState<any | null>(null);
+  const [story, setStory] = useState<Story | null>(null);
   const [chapters, setChapters] = useState<ChapterDB[]>([]);
   const [query, setQuery] = useState("");
   const [onlyPublished, setOnlyPublished] = useState(false);
@@ -59,7 +72,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
   const [tagInput, setTagInput] = useState("");
   const [genreSuggestions, setGenreSuggestions] = useState<TagRow[]>([]);
   const [tagSuggestions, setTagSuggestions] = useState<TagRow[]>([]);
-  const suggestionAbortRef = useRef<number | null>(null);
+  const suggestionAbortRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [uploadingCover, setUploadingCover] = useState(false);
 
@@ -152,9 +165,9 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
         console.warn("Error fetching profile", e);
       }
 
-      setStory({ ...storyData, authorUsername });
+      setStory({ ...storyData, authorUsername } as Story);
 
-      const chs: ChapterDB[] = (storyData?.chapters || []).map((c: any) => ({
+      const chs: ChapterDB[] = (storyData?.chapters || []).map((c: ChapterDB) => ({
         id: c.id,
         story_id: c.story_id,
         title: c.title,
@@ -174,50 +187,58 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
         .select("tag_id, tags(id,name,type)")
         .eq("story_id", storyId);
 
-      if (linked) {
-        const g: TagRow[] = [];
-        const t: TagRow[] = [];
-        for (const row of linked) {
-          const tag = row.tags ?? row;
-          if (!tag) continue;
-          if (tag.type === "genre") g.push(tag);
-          else t.push(tag);
-        }
-        setGenres(g);
-        setTags(t);
-      }
-    } catch (err: any) {
+  if (linked) {
+    const g: TagRow[] = [];
+    const t: TagRow[] = [];
+    for (const row of linked) {
+      const tag = row.tags ?? row;
+      if (!tag) continue;
+      // Explicitly cast tag as unknown first then TagRow to suppress TS errors
+      const typedTag = tag as unknown as TagRow;
+      if (typedTag.type === "genre") g.push(typedTag);
+      else t.push(typedTag);
+    }
+    setGenres(g);
+    setTags(t);
+  }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
       console.error("Error cargando historia", err);
-      alert("Error cargando historia: " + (err?.message ?? JSON.stringify(err)));
+      alert("Error cargando historia: " + errorMsg);
     } finally {
       setLoading(false);
     }
   }
 
   // suggestions...
+  // move early returns out of useEffect to avoid conditional hook calls
+  // use separate useEffect with guard for genreInput
   useEffect(() => {
-    if (genreInput.trim() === "") {
+    if (genreInput.trim() !== "") {
+      fetchTagSuggestions(genreInput.trim(), "genre");
+    } else {
       setGenreSuggestions([]);
-      return;
     }
-    fetchTagSuggestions(genreInput.trim(), "genre");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genreInput]);
+  
+  // fetchTagSuggestions function remains unchanged
 
+  // use separate useEffect with guard for tagInput
   useEffect(() => {
-    if (tagInput.trim() === "") {
+    if (tagInput.trim() !== "") {
+      fetchTagSuggestions(tagInput.trim(), "tag");
+    } else {
       setTagSuggestions([]);
-      return;
     }
-    fetchTagSuggestions(tagInput.trim(), "tag");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tagInput]);
 
   async function fetchTagSuggestions(q: string, type: "genre" | "tag") {
     if (suggestionAbortRef.current) {
-      window.clearTimeout(suggestionAbortRef.current);
+      clearTimeout(suggestionAbortRef.current);
     }
-    suggestionAbortRef.current = window.setTimeout(async () => {
+    suggestionAbortRef.current = setTimeout(async () => {
       try {
         const { data } = await supabase
           .from("tags")
@@ -244,7 +265,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
 
     setGenreInput("");
     const { data: existing } = await supabase.from("tags").select("*").ilike("name", trimmed).eq("type", "genre").limit(1);
-    let tagRow: TagRow | null = existing && existing[0] ? existing[0] : null;
+    let tagRow: TagRow | null = existing && existing.length > 0 && existing[0] ? existing[0] : null;
 
     try {
       if (!tagRow) {
@@ -262,9 +283,10 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
         await supabase.from("story_tags").insert([{ story_id: storyId, tag_id: tagRow.id }]);
         setGenres((prev) => [...prev, tagRow!]);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errorMsg = e instanceof Error ? e.message : JSON.stringify(e);
       console.error("handleAddGenreByName error", e);
-      alert("Error añadiendo género: " + (e?.message ?? JSON.stringify(e)));
+      alert("Error añadiendo género: " + errorMsg);
     }
   }
 
@@ -277,7 +299,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     }
     setTagInput("");
     const { data: existing } = await supabase.from("tags").select("*").ilike("name", trimmed).eq("type", "tag").limit(1);
-    let tagRow: TagRow | null = existing && existing[0] ? existing[0] : null;
+    let tagRow: TagRow | null = existing && existing.length > 0 && existing[0] ? existing[0] : null;
 
     try {
       if (!tagRow) {
@@ -295,9 +317,10 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
         await supabase.from("story_tags").insert([{ story_id: storyId, tag_id: tagRow.id }]);
         setTags((prev) => [...prev, tagRow!]);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errorMsg = e instanceof Error ? e.message : JSON.stringify(e);
       console.error("handleAddTagByName error", e);
-      alert("Error añadiendo etiqueta: " + (e?.message ?? JSON.stringify(e)));
+      alert("Error añadiendo etiqueta: " + errorMsg);
     }
   }
 
@@ -324,26 +347,31 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     setUploadingCover(true);
     try {
       const res = await uploadImageUnsigned(file);
-      const url = res.url || res.secure_url || res.raw?.secure_url;
+      // Use type-safe access with Res type if available; otherwise assert cautiously
+      const url = (res as { url?: string; secure_url?: string; raw?: { secure_url?: string } }).url 
+              || (res as { url?: string; secure_url?: string; raw?: { secure_url?: string } }).secure_url 
+              || (res as { url?: string; secure_url?: string; raw?: { secure_url?: string } }).raw?.secure_url;
       if (!url) throw new Error("No se obtuvo URL de Cloudinary");
 
       const { error } = await supabase.from("stories").update({ cover_url: url }).eq("id", storyId);
       if (error) throw error;
 
-      setStory((s: any) => ({ ...s, cover_url: url }));
+      setStory((s: Story | null) => (s ? { ...s, cover_url: url } : s));
       alert("Portada actualizada");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
       console.error("Error subiendo a Cloudinary", err);
-      alert("Error subiendo portada: " + (err?.message ?? JSON.stringify(err)));
+      alert("Error subiendo portada: " + errorMsg);
     } finally {
       setUploadingCover(false);
     }
   }
 
+
   // manual cover URL
   async function handleCoverUrlChange(newUrl: string) {
     if (!storyId) return;
-    setStory((s: any) => ({ ...s, cover_url: newUrl }));
+    setStory((s: Story | null) => (s ? { ...s, cover_url: newUrl } : s));
     try {
       const { error } = await supabase.from("stories").update({ cover_url: newUrl }).eq("id", storyId);
       if (error) console.warn("Error updating cover_url", error);
@@ -365,12 +393,13 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
     try {
       const { error } = await supabase.from("stories").update({ description: descDraft, updated_at: new Date().toISOString() }).eq("id", storyId);
       if (error) throw error;
-      setStory((s: any) => ({ ...s, description: descDraft }));
+      setStory((s: Story | null) => (s ? { ...s, description: descDraft } : s));
       setEditingDescription(false);
       alert("Descripción actualizada");
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errorMsg = e instanceof Error ? e.message : JSON.stringify(e);
       console.error("Error guardando descripción", e);
-      alert("Error guardando descripción: " + (e?.message ?? JSON.stringify(e)));
+      alert("Error guardando descripción: " + errorMsg);
     }
   }
   function cancelEditDescription() {
@@ -433,17 +462,28 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
           throw new Error('toggle endpoint error');
         }
 
-        const json = await res.json().catch(() => ({}));
-        const updated: any = json.story ?? json.data ?? json.updated ?? json;
+        const json: unknown = await res.json().catch(() => ({}));
 
-        // actualizar story local con lo que venga del server
-        setStory((s: any) => ({ ...s, status: updated.status ?? newStatus, updated_at: updated.updated_at ?? new Date().toISOString() }));
+        function isStoryUpdate(obj: unknown): obj is { story?: Story; data?: Story; updated?: Story; status?: string; updated_at?: string } {
+          return typeof obj === 'object' && obj !== null;
+        }
+
+        const updated = isStoryUpdate(json) ? json.story ?? json.data ?? json.updated ?? json : null;
+
+        // actualizar story local con lo que venga del server, asegurando tipos
+        setStory((s: Story | null) => {
+          if (!s) return s;
+          if (updated && typeof updated === 'object' && 'status' in updated && 'updated_at' in updated) {
+            return { ...s, status: updated.status ?? newStatus, updated_at: updated.updated_at ?? new Date().toISOString() };
+          }
+          return { ...s, status: newStatus, updated_at: new Date().toISOString() };
+        });
         // opcional: si cambias a draft, puedes decidir redirigir fuera de la vista pública; aquí solo actualizamos.
       } else {
         // fallback directo: actualizar tabla stories desde cliente
         throw new Error('No session token');
       }
-    } catch (e) {
+    } catch (e: unknown) {
       try {
         const { data: updatedRow, error } = await supabase
           .from('stories')
@@ -453,8 +493,11 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
           .single();
 
         if (error) throw error;
-        setStory((s: any) => ({ ...s, status: updatedRow.status ?? newStatus, updated_at: updatedRow.updated_at ?? new Date().toISOString() }));
-      } catch (err) {
+        setStory((s: Story | null) => {
+          if (!s) return s;
+          return { ...s, status: updatedRow?.status ?? newStatus, updated_at: updatedRow?.updated_at ?? new Date().toISOString() };
+        });
+      } catch (err: unknown) {
         console.error('Error toggling story status', err);
         alert('No se pudo cambiar el estado de la historia. Revisa la consola.');
       }
@@ -625,7 +668,7 @@ export default function CapitulosPage({ params }: { params?: { id?: string } }) 
           <span>Solo publicados</span>
         </label>
 
-        <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+        <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as "number" | "title")}>
           <option value="number">Número ↑</option>
           <option value="title">Título</option>
         </select>
