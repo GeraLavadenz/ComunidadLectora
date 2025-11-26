@@ -1,12 +1,17 @@
 // src/app/api/library/meta/route.ts
 import { NextResponse } from 'next/server';
-import supabase from '../../../../lib/supabaseClient'; 
+import supabase from '../../../../lib/supabaseClient';
+
+interface Tag {
+  id: string;
+  name: string;
+}
 export async function GET() {
   try {
     const { data: genresData, error: genresError } = await supabase
       .from('tags')
       .select('id, name')
-      .eq('type', 'genre');
+      .eq('type', 'genre') as { data: Tag[] | null; error: unknown };
 
     if (genresError) {
       console.error('Error cargando géneros:', genresError);
@@ -16,7 +21,7 @@ export async function GET() {
     const { data: tagsData, error: tagsError } = await supabase
       .from('tags')
       .select('id, name')
-      .eq('type', 'tag');
+      .eq('type', 'tag') as { data: Tag[] | null; error: unknown };
 
     if (tagsError) {
       console.error('Error cargando etiquetas:', tagsError);
