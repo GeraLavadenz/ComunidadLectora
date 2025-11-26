@@ -1,3 +1,0 @@
-[submodule "src/modules/admin"]
-	path = src/modules/admin
-	url = https://github.com/GeraLavadenz/ComunidadLectora-AdminPanel.git
