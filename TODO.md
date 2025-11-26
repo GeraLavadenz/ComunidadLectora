@@ -1,10 +1,7 @@
-# TODO: Fix ESLint Errors and Warnings in capitulos.tsx
+# TODO: Fix Linting Issues in CreaCapitulos.tsx
 
-1. Remove unused 'loading' state variable and its setter.
-2. Remove unused 'togglingChapterIds' and 'setTogglingChapterIds' state variables.
-3. Move useEffect hooks for genreInput and tagInput before the early return to fix conditional hook calls.
-4. Remove unused eslint-disable directives.
-5. Remove unused 'handleCoverUrlChange' function.
-6. Remove unused 'e' parameter in catch block.
-7. Import Image from 'next/image' and replace <img> with <Image>.
-8. Verify all changes and ensure no functionality is broken.
+- [x] Remove unused variables: 'storyTitle', 'aiResult', 'data' (from insert), and unused function 'openAISidePanel'
+- [x] Remove the unused 'ChipEditor' component entirely
+- [x] Replace 'any' types with proper TypeScript types:
+  - [x] In loadMeta reduce: Type 'c' as { chapter_number?: number }
+  - [x] In catch block: Type 'err' as unknown

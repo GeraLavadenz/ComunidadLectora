@@ -242,7 +242,7 @@ export default function StoryDetail({ story, refreshStory }: StoryDetailProps) {
         {filtered.map((c) => (
           <ChapterCard key={c.id} chapter={c} storyId={local.id} />
         ))}
-        {filtered.length === 0 && <div className="empty">Sin resultados para "{query}"</div>}
+        {filtered.length === 0 && <div className="empty">Sin resultados para &#34;{query}&#34;</div>}
       </section>
     </main>
   );

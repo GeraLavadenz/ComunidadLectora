@@ -9,7 +9,6 @@ import "../styles/capitulos-create.css";
 export default function NewChapterFromModules({ storyId }: { storyId?: string }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [storyTitle, setStoryTitle] = useState("");
   const [chapterTitle, setChapterTitle] = useState("");
   const [chapterContent, setChapterContent] = useState("");
   const [publishNow, setPublishNow] = useState(false);
@@ -18,7 +17,6 @@ export default function NewChapterFromModules({ storyId }: { storyId?: string })
   // side panel
   const [aiOpen, setAiOpen] = useState(false);
   const [aiInitial, setAiInitial] = useState(""); // texto pasado al corrector
-  const [aiResult, setAiResult] = useState<string | null>(null); // respuesta previa (opcional)
 
   useEffect(() => {
     if (!storyId) return;
@@ -36,9 +34,8 @@ export default function NewChapterFromModules({ storyId }: { storyId?: string })
 
       if (error) throw error;
       if (data) {
-        setStoryTitle(data.title || "");
         const chs = data.chapters || [];
-        const max = chs.reduce((acc: number, c: any) => Math.max(acc, c.chapter_number ?? 0), 0);
+        const max = chs.reduce((acc: number, c: { chapter_number?: number }) => Math.max(acc, c.chapter_number ?? 0), 0);
         setNextNumber(max + 1);
         setChapterTitle(`Capítulo ${max + 1}`);
       } else {
@@ -63,28 +60,22 @@ export default function NewChapterFromModules({ storyId }: { storyId?: string })
         chapter_number: nextNumber ?? 1,
         is_published: publishNow,
       };
-      const { data, error } = await supabase.from("chapters").insert([payload]).select().single();
+      const { error } = await supabase.from("chapters").insert([payload]).select().single();
       if (error) throw error;
       router.push(`/escritura/capitulos/${storyId}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("create chapter error", err);
-      alert("Error creando capítulo: " + (err?.message ?? JSON.stringify(err)));
+      alert("Error creando capítulo: " + (err instanceof Error ? err.message : JSON.stringify(err)));
     } finally {
       setSaving(false);
     }
   }
 
-  // abrir el panel IA y pasar el texto actual
-  function openAISidePanel() {
-    setAiInitial(chapterContent);
-    setAiResult(null);
-    setAiOpen(true);
-  }
+
 
   // callback que AITextCorrector usará para aplicar la corrección (onApply)
   function handleApplyAISuggestion(newText: string) {
     setChapterContent(newText);
-    setAiResult(newText);
     // dejar el panel abierto para comparar si quieres; si prefieres cerrarlo, descomenta:
     // setAiOpen(false);
   }
@@ -115,7 +106,7 @@ export default function NewChapterFromModules({ storyId }: { storyId?: string })
                     🧠 KOLLA IA
                     </button>
 
-                    <button type="button" className="btnGhost" onClick={() => { setChapterContent(""); setAiResult(null); }}>Limpiar</button>
+                    <button type="button" className="btnGhost" onClick={() => { setChapterContent(""); }}>Limpiar</button>
                   </div>
                 </div>
 
@@ -165,31 +156,4 @@ export default function NewChapterFromModules({ storyId }: { storyId?: string })
   );
 }
 
-// Chip editor UI (igual)
-function ChipEditor({ items = [], placeholder, onAdd, onRemove, badgeClass = "", ariaLabel = "" }: any) {
-  const [value, setValue] = useState("");
 
-  function onKeyDown(e: any) {
-    if (e.key === "Enter") {
-      const v = value.trim();
-      if (v) {
-        onAdd(v);
-        setValue("");
-      }
-    }
-  }
-
-  return (
-    <div aria-label={ariaLabel}>
-      <div className="chips">
-        {items.map((it: string) => (
-          <span key={it} className={`chip ${badgeClass}`}>
-            {it}
-            <button className="chipRemove" title={`Eliminar ${it}`} onClick={() => onRemove(it)} aria-label={`Eliminar ${it}`}>×</button>
-          </span>
-        ))}
-      </div>
-      <input className="chipInput" placeholder={placeholder} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={onKeyDown} />
-    </div>
-  );
-}
