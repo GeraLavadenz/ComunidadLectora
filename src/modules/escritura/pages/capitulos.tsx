@@ -464,7 +464,7 @@ const resolvedStoryId = (() => {
         // fallback directo: actualizar tabla stories desde cliente
         throw new Error('No session token');
       }
-    } catch (e: unknown) {
+    } catch {
       try {
         const { data: updatedRow, error } = await supabase
           .from('stories')

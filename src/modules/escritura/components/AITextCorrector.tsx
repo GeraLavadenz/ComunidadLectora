@@ -105,7 +105,7 @@ export default function AITextCorrector({
             </div>
           </>
         ) : (
-          <p className="muted">Pulsa "Generar con IA" para obtener una sugerencia.</p>
+          <p className="muted">Pulsa &#34;Generar con IA&#34; para obtener una sugerencia.</p>
         )}
       </div>
     </div>

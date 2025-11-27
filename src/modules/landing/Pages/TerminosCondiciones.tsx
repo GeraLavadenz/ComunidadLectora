@@ -19,7 +19,7 @@ const TerminosCondiciones: React.FC = () => {
           <div className={styles.card}>
             <h2>1. Aceptación de los Términos</h2>
             <p>
-              Al acceder y utilizar Comunidad Lectora Bolivia, aceptas estar sujeto a estos "t&eacute;rminos y condiciones de uso".
+              Al acceder y utilizar Comunidad Lectora Bolivia, aceptas estar sujeto a estos &#34;t&eacute;rminos y condiciones de uso&#34;.
               Si no est&aacute;s de acuerdo con alguna parte de estos t&eacute;rminos, no podr&aacute;s acceder al servicio.
             </p>
           </div>
@@ -61,7 +61,7 @@ const TerminosCondiciones: React.FC = () => {
             <h2>6. Limitación de Responsabilidad</h2>
             <p>
               Comunidad Lectora Bolivia no se hace responsable por daños directos, indirectos o consecuentes que puedan surgir
-              del uso del servicio. El servicio se proporciona "tal cual" sin garantías.
+              del uso del servicio. El servicio se proporciona &#34;tal cual&#34; sin garantías.
             </p>
           </div>
 
@@ -76,7 +76,7 @@ const TerminosCondiciones: React.FC = () => {
           <div className={styles.card}>
             <h2>8. Contacto</h2>
             <p>
-nuestro "formulario"
+nuestro &#34;formulario&#34;
               de contacto o enviando un correo electrónico a soporte@comunidadlectorabolivia.com.
             </p>
           </div>

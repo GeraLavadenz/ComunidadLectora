@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useId } from "react";
 import supabase from '@/lib/supabaseClient';
 
 interface ChipEditorProps {
@@ -27,6 +27,7 @@ export default function ChipEditor({
   const [highlight, setHighlight] = useState(-1);
   const debRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listboxId = useId();
 
   async function fetchSuggestions(q: string) {
     if (!q || q.trim().length === 0) { setSuggestions([]); return; }
@@ -154,10 +155,11 @@ export default function ChipEditor({
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={showSuggestions}
+        aria-controls={listboxId}
       />
 
       {showSuggestions && (loadingSug || suggestions.length > 0 || value.trim()) && (
-        <div className="chip-suggestions" role="listbox" style={{
+        <div id={listboxId} className="chip-suggestions" role="listbox" style={{
           position: 'absolute', zIndex: 50, background: 'var(--card-bg,#0b0b0b)',
           border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, marginTop: 6,
           width: '100%', maxHeight: 220, overflowY: 'auto', padding: '6px'
