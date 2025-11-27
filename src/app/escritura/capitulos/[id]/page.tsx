@@ -8,7 +8,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1">
-        <Capitulos storyId={id} />
+        <Capitulos params={{ id }} />
       </main>
       <Footer />
     </div>
