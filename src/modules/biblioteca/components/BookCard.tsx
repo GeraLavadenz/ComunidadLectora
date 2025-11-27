@@ -69,15 +69,18 @@ const BookCard: React.FC<BookCardProps> = ({ book }) => {
 
           <div className="book-actions">
           <Link
-            href={`/leer/${encodeURIComponent(book.id)}`}
-            className="book-btn book-btn-primary inline-flex items-center justify-center"
-            aria-label={`Leer ahora ${book.title}`}
+            href={`/biblioteca/leer?storyId=${encodeURIComponent(book.id)}`}
+            prefetch={false}
+            className="book-btn book-btn-secondary inline-flex items-center justify-center"
+            aria-label={`Leer ${book.title}`}
           >
-            Leer ahora
+            Leer
           </Link>
+
 
             <Link
               href={`/biblioteca/ver-info/${encodeURIComponent(book.id)}`}
+              prefetch={false}
               className="book-btn book-btn-secondary inline-flex items-center justify-center"
               aria-label={`Ver detalles de ${book.title}`}
             >
