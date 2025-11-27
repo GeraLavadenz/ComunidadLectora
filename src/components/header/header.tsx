@@ -17,7 +17,7 @@ import {
 } from '../ui/dropdown-menu';
 import { Menu, Search, LogOut, User, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import GenreMenu from './components/GenreMenu';
+//import GenreMenu from './components/GenreMenu';
 import CommunityMenu from './components/CommunityMenu';
 import CreateMenu from './components/CreateMenu';
 import { genres, community, createOptions } from './data';
@@ -128,7 +128,7 @@ const Header: React.FC = () => {
         <nav className={styles.desktopNav}>
           <NavigationMenu>
             <NavigationMenuList className={styles.navList}>
-              <GenreMenu />
+              {/*<GenreMenu />*/}
               <CommunityMenu />
             </NavigationMenuList>
           </NavigationMenu>
