@@ -211,8 +211,8 @@ export default function LeerPage() {
             <div className="leer-progress" style={{ ['--progress' as any]: `${chapterPercentage}%` }}></div>
 
             <div className="leer-save-wrap">
-              <button className="outline glass" onClick={saveManual}>Guardar</button>
-              <span className="leer-pct">{chapterPercentage}%</span>
+              {/*<button className="outline glass" onClick={saveManual}>Guardar</button>
+              <span className="leer-pct">{chapterPercentage}%</span>*/}
             </div>
           </div>
         </aside>
