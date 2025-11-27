@@ -10,12 +10,14 @@ type Profile = {
   display_name?: string | null;
   email?: string | null;
   avatar_url?: string | null;
-  role?: string | null;
+  role?: Role | null;
   is_active?: boolean | null;
   created_at?: string | null;
 };
 
 const ROLE_OPTIONS = ['reader', 'editor', 'admin'] as const;
+
+type Role = typeof ROLE_OPTIONS[number];
 
 export default function AdminPanelPage() {
   const supabase = createClientComponentClient();
@@ -74,10 +76,10 @@ export default function AdminPanelPage() {
     }
   }
 
-  async function changeRole(userId: string, newRole: string) {
+  async function changeRole(userId: string, newRole: Role) {
     setActionLoading((s) => ({ ...s, [userId]: true }));
     try {
-      if (!ROLE_OPTIONS.includes(newRole as any)) throw new Error('Rol inválido');
+      if (!ROLE_OPTIONS.includes(newRole)) throw new Error('Rol inválido');
       const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
       if (error) throw error;
       setUsers((prev) => prev.map((p) => (p.id === userId ? { ...p, role: newRole } : p)));
@@ -164,7 +166,7 @@ export default function AdminPanelPage() {
                     <div className="flex items-center gap-3">
                       <select
                         value={u.role ?? 'reader'}
-                        onChange={(e) => changeRole(u.id, e.target.value)}
+                        onChange={(e) => changeRole(u.id, e.target.value as Role)}
                         className="p-2 rounded-md bg-transparent border border-gray-700 text-sm"
                         disabled={!!actionLoading[u.id]}
                       >

@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Stars from "./Stars";
 import "../styles/BookCard.css";
 
@@ -25,7 +26,7 @@ export default function BookCard({ book }: BookCardProps) {
     <div className="book-cover">
       <div className="book-cover-inner">
         {book.cover ? (
-          <img src={book.cover} alt={book.title} />
+          <Image src={book.cover} alt={book.title} fill style={{ objectFit: 'cover' }} />
         ) : (
           <div className="book-nocover">Sin portada</div>
         )}

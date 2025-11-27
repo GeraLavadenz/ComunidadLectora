@@ -18,6 +18,14 @@ function useDebounced<ValueT>(value: ValueT, delay = 300) {
 
 type TagRow = { id: string; name: string; type: 'genre' | 'tag' | string };
 
+type RawTagRow = {
+  id?: string | number;
+  name?: string;
+  slug?: string;
+  title?: string;
+  [key: string]: unknown;
+};
+
 interface FiltersPanelProps {
   allGenres?: Array<{ id: string; name: string }>;
   allTags?: Array<{ id: string; name: string }>;
@@ -88,7 +96,7 @@ export default function FiltersPanel({
   }
 
   // Normalize to guarantee string ids and shape
-  const normalizeRows = (rows: any[], type: string): TagRow[] =>
+  const normalizeRows = (rows: RawTagRow[], type: string): TagRow[] =>
     (rows ?? []).map((r, idx) => {
       const rawId = r.id ?? r.slug ?? r.name ?? `${type}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
       const name = r.name ?? r.title ?? String(rawId);
@@ -110,10 +118,11 @@ export default function FiltersPanel({
       if (!mountedRef.current) return;
       setFetchedGenres(genres);
       setFetchedTags(tags);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('FiltersPanel.fetchMeta error:', err);
       if (mountedRef.current) {
-        setError(err?.message ?? 'Error cargando datos');
+        const errorMessage = err instanceof Error ? err.message : 'Error cargando datos';
+        setError(errorMessage);
         setFetchedGenres((prev) => prev ?? []); // avoid flicker by keeping null->[] consistent
         setFetchedTags((prev) => prev ?? []);
       }
