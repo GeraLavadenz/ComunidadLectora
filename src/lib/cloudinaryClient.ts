@@ -8,12 +8,21 @@
  * - Con mensaje de error claro
  */
 
-interface CloudinaryResponse {
+interface CloudinarySuccessResponse {
   secure_url: string;
   public_id: string;
-  error?: {
+}
+
+interface CloudinaryErrorResponse {
+  error: {
     message: string;
   };
+}
+
+type CloudinaryResponse = CloudinarySuccessResponse | CloudinaryErrorResponse;
+
+function isCloudinaryErrorResponse(data: unknown): data is CloudinaryErrorResponse {
+  return typeof data === 'object' && data !== null && 'error' in data && typeof (data as CloudinaryErrorResponse).error.message === 'string';
 }
 
 export async function uploadImageUnsigned(file: File, preset?: string) {
@@ -67,24 +76,26 @@ export async function uploadImageUnsigned(file: File, preset?: string) {
   
     if (!res.ok) {
       console.error("Cloudinary Error Response:", data);
-  
+
       // Errores típicos explicados
-      if (data?.error?.message?.includes("Upload preset not found")) {
+      if (isCloudinaryErrorResponse(data) && data.error.message.includes("Upload preset not found")) {
         throw new Error(
-          `Cloudinary: EL PRESET NO EXISTE. 
+          `Cloudinary: EL PRESET NO EXISTE.
   Asegúrate que "${uploadPreset}":
   - Existe en Cloudinary (Dashboard → Settings → Upload → Upload presets)
   - Está en modo UNSIGNED (No firmado)
   - Está bien escrito (sensible a mayúsculas/minúsculas)`
         );
       }
-  
+
       throw new Error(`Cloudinary upload failed: ${res.status} → ${JSON.stringify(data)}`);
     }
-  
+
+    // At this point, res.ok is true, so data should be CloudinarySuccessResponse
+    const successData = data as CloudinarySuccessResponse;
     return {
-      url: data.secure_url,
-      public_id: data.public_id,
+      url: successData.secure_url,
+      public_id: successData.public_id,
       raw: data,
     };
   }
