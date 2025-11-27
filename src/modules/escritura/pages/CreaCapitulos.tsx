@@ -16,7 +16,6 @@ export default function NewChapterFromModules({ storyId }: { storyId?: string })
 
   // side panel
   const [aiOpen, setAiOpen] = useState(false);
-  const [aiInitial, setAiInitial] = useState(""); // texto pasado al corrector
 
   useEffect(() => {
     if (!storyId) return;
@@ -143,7 +142,7 @@ export default function NewChapterFromModules({ storyId }: { storyId?: string })
 
                 {/* AITextCorrector se encarga de generar y ofrecer 'Aplicar' */}
                 <AITextCorrector
-                  initialText={aiInitial}
+                  initialText=""
                   onApply={handleApplyAISuggestion}
                   apiEndpoint="/api/ai/correct"
                 />

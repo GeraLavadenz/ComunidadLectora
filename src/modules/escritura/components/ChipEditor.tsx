@@ -151,6 +151,7 @@ export default function ChipEditor({
         onChange={onChange}
         onKeyDown={onKeyDown}
         onFocus={() => { if (value) fetchSuggestions(value); setShowSuggestions(true); }}
+        role="combobox"
         aria-autocomplete="list"
         aria-expanded={showSuggestions}
       />
