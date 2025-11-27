@@ -1,0 +1,392 @@
+/* =========================
+   VerInfoHistoria.css — versión final
+   ========================= */
+
+/* ---------- Variables (modo claro por defecto) ---------- */
+:root {
+    --green-1: #0f8b1a;
+    --green-2: #0a5f09;
+    --green-3: #30d23b;
+    --green-4: #248f2f;
+    --green-5: #2f8f56;
+  
+    --bg: #f7fbf7;
+    --card: #ffffff;
+    --muted: #6b7280;
+    --border: #e6efe6;
+    --accent-text: #0b2f10;
+  
+    --tag-fg: #ffffff;
+    --tag-bg-start: #5a7aff;
+    --tag-bg-end: #706eff;
+    --tag-secondary-start: #ff7b5a;
+    --tag-secondary-end: #ffbc5e;
+  
+    --btn-gradient-1: #60f0ff;
+    --btn-gradient-2: #7bdcff;
+    --btn-gradient-3: #a04bff;
+  }
+  
+  /* Dark mode overrides (usa class="dark" o data-theme="dark" en <html> o <body>) */
+  html.dark,
+  html[data-theme="dark"],
+  :root[data-theme="dark"] {
+    --bg: #071018;
+    --card: #071522;
+    --muted: #9aa6b2;
+    --border: rgba(255,255,255,0.04);
+    --accent-text: #d9f6e0;
+  
+    --tag-fg: #e9f4ff;
+    --tag-bg-start: #1f66ff;
+    --tag-bg-end: #8a5aff;
+    --tag-secondary-start: #ff8a6b;
+    --tag-secondary-end: #ffbe75;
+  
+    --btn-gradient-1: #43e6ff;
+    --btn-gradient-2: #6fe8ff;
+    --btn-gradient-3: #b57bff;
+  }
+  
+  /* Fallback a preferencia del sistema */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      --bg: #071018;
+      --card: #071522;
+      --muted: #9aa6b2;
+      --border: rgba(255,255,255,0.04);
+      --accent-text: #d9f6e0;
+  
+      --tag-fg: #e9f4ff;
+      --tag-bg-start: #1f66ff;
+      --tag-bg-end: #8a5aff;
+      --tag-secondary-start: #ff8a6b;
+      --tag-secondary-end: #ffbe75;
+  
+      --btn-gradient-1: #43e6ff;
+      --btn-gradient-2: #6fe8ff;
+      --btn-gradient-3: #b57bff;
+    }
+  }
+  
+  /* =========================
+     Layout principal
+     ========================= */
+  .vih-container {
+    padding: 1.5rem;
+    max-width: 64rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    background: var(--bg);
+    color: var(--accent-text);
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  .vih-header {
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+  }
+  
+  .vih-cover {
+    width: 10rem;
+    height: 14rem;
+    position: relative;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--green-5), var(--green-2));
+    box-shadow: 0 6px 18px rgba(12,60,20,0.10);
+    flex: 0 0 auto;
+  }
+  
+  .vih-cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .vih-info {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    justify-content: space-between;
+  }
+  
+  .vih-title {
+    font-size: 1.6rem;
+    line-height: 1.1;
+    margin: 0;
+  }
+  
+  .vih-author {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  
+  /* =========================
+     Géneros y Tags (se aplican a hijos)
+     ========================= */
+  
+  /* Normaliza hijos dentro de contenedores (span/a/button/componente) */
+  .vih-genres > *,
+  .vih-tags > * {
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* ---------- Géneros: sólido con degradado verde ---------- */
+  /* Aplica si el elemento tiene .vih-genre o está dentro de .vih-genres */
+  .vih-genre,
+  .vih-genres > .vih-genre,
+  .vih-genres > *[data-genre] {
+    padding: 0.36rem 0.8rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+    border-radius: 8px;
+    background-image: linear-gradient(180deg, var(--green-3), var(--green-2));
+    color: #ffffff;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 6px 18px rgba(12,60,20,0.12);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  
+  /* Hover géneros */
+  .vih-genre:hover,
+  .vih-genres > .vih-genre:hover,
+  .vih-genres > *[data-genre]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(12,60,20,0.22);
+  }
+  
+  /* ---------- Tags: pill gradient (aplica también a hijos) ---------- */
+  .vih-tag,
+  .vih-tags > .vih-tag,
+  .vih-tags > *:not(.vih-genre),
+  .vih-tags > *[data-tag] {
+    padding: 0.28rem 0.72rem;
+    font-size: 0.78rem;
+    border-radius: 999px;
+    font-weight: 500;
+    color: var(--tag-fg);
+    border: 1px solid rgba(255,255,255,0.06);
+    background-image: linear-gradient(135deg, var(--tag-bg-start), var(--tag-bg-end));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.03),
+      0 6px 16px rgba(30,40,80,0.10);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  
+  /* Hover tags */
+  .vih-tag:hover,
+  .vih-tags > .vih-tag:hover,
+  .vih-tags > *:not(.vih-genre):hover,
+  .vih-tags > *[data-tag]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 36px rgba(30,40,80,0.16);
+  }
+  
+  /* secondary (hashtags u otros especiales) */
+  .vih-tag.secondary,
+  .vih-tags > .vih-tag.secondary,
+  .vih-tags > *:not(.vih-genre).secondary,
+  .vih-tags > *[data-tag].secondary {
+    background-image: linear-gradient(135deg, var(--tag-secondary-start), var(--tag-secondary-end));
+    color: #fff;
+    border-color: rgba(255,255,255,0.06);
+    box-shadow: 0 10px 28px rgba(120,60,200,0.12);
+  }
+  
+  /* Mostrar '#' delante si el elemento tiene clase hash */
+  .vih-tags .hash::before,
+  .vih-tag.hash::before,
+  .vih-tags > *[data-hash]::before {
+    content: "#";
+    margin-right: 0.35rem;
+    opacity: 0.95;
+    font-weight: 700;
+  }
+  
+  /* =========================
+     Secciones, capítulos y botones
+     ========================= */
+  
+  .vih-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 6px 20px rgba(11,40,12,0.04);
+    color: var(--accent-text);
+  }
+  
+  .vih-section h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.05rem;
+  }
+  
+  .vih-chapter-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  
+  .vih-chapter-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card);
+    border-radius: 0.5rem;
+    padding: 0.8rem;
+    border: 1px solid var(--border);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  
+  .vih-chapter-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(10,40,20,0.06);
+  }
+  
+  /* Botones (aplicables a button, a, Link, etc.) */
+  .vih-btn,
+  .vih-chapter-item a.vih-btn,
+  .vih-chapter-item button.vih-btn {
+    padding: 0.45rem 0.8rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+  }
+  
+  /* Read gradient */
+  .vih-btn.read,
+  .vih-chapter-item a.vih-btn.read,
+  .vih-chapter-item button.vih-btn.read {
+    background-image: linear-gradient(90deg, var(--btn-gradient-1), var(--btn-gradient-2) 40%, var(--btn-gradient-3));
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 8px 28px rgba(80,60,160,0.12);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  
+  /* Disabled */
+  .vih-btn.disabled,
+  .vih-chapter-item button.vih-btn.disabled {
+    opacity: 0.6;
+    background: rgba(0,0,0,0.12);
+    color: var(--muted);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  
+  /* =========================
+     Recomendaciones (cards)
+     ========================= */
+  
+  .vih-recs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+  
+  .vih-rec {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  
+  .vih-rec-cover {
+    width: 8rem;
+    height: 11rem;
+    position: relative;
+    border-radius: 0.45rem;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--green-5), var(--green-2));
+    box-shadow: 0 8px 22px rgba(8,40,16,0.06);
+  }
+  
+  .vih-rec-cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .vih-rec-title {
+    font-size: 0.9rem;
+    color: var(--accent-text);
+  }
+  
+  /* =========================
+     Responsive
+     ========================= */
+  
+  @media (min-width: 768px) {
+    .vih-recs-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .vih-header {
+      gap: 1.5rem;
+    }
+    .vih-cover {
+      width: 11.5rem;
+      height: 16rem;
+    }
+    .vih-title {
+      font-size: 1.9rem;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .vih-container {
+      padding: 1rem;
+    }
+    .vih-header {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .vih-info {
+      align-items: center;
+      text-align: center;
+    }
+    .vih-cover {
+      width: 9.5rem;
+      height: 13rem;
+    }
+    .vih-chapter-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.6rem;
+    }
+  }
+  
+  /* =========================
+     Respaldo: fuerza degradado en caso de estilos externos conflictivos
+     (puedes quitarlo cuando confirmes que todo funciona)
+     ========================= */
+  
+  .vih-genres > *,
+  .vih-genres .vih-genre,
+  .vih-genres > .vih-genre,
+  .vih-genres a,
+  .vih-genres span,
+  .vih-genres button {
+    background-image: linear-gradient(180deg, var(--green-3), var(--green-4)) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.08) !important;
+    box-shadow: 0 6px 18px rgba(12,60,20,0.12) !important;
+  }
+  
