@@ -13,12 +13,14 @@ export async function GET(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() {
-            return cookies().getAll()
+          async getAll() {
+            const cookieStore = await cookies()
+            return cookieStore.getAll()
           },
-          setAll(cookiesToSet) {
+          async setAll(cookiesToSet) {
+            const cookieStore = await cookies()
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookies().set(name, value, options)
+              cookieStore.set(name, value, options)
             })
           }
         }
@@ -28,7 +30,7 @@ export async function GET(request: Request) {
   }
 
   // Recuperamos el rol que guardamos antes del login
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const preferredRole = cookieStore.get('preferred_role')?.value
 
   // Limpiamos la cookie

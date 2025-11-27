@@ -19,8 +19,6 @@ interface CloudinaryErrorResponse {
   };
 }
 
-type CloudinaryResponse = CloudinarySuccessResponse | CloudinaryErrorResponse;
-
 function isCloudinaryErrorResponse(data: unknown): data is CloudinaryErrorResponse {
   return typeof data === 'object' && data !== null && 'error' in data && typeof (data as CloudinaryErrorResponse).error.message === 'string';
 }
