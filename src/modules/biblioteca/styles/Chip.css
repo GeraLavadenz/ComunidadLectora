@@ -1,4 +1,70 @@
-/* Chip.css */
+/* Chip.css - estilo para los botones de etiqueta dentro del panel */
 .chip {
-  /* Add styles if needed */
+  background: #171717;               /* fondo oscuro */
+  border: 1px solid rgba(255,255,255,0.06); /* borde sutil */
+  color: #e5e7eb;                    /* texto claro */
+  padding: 8px 12px;
+  border-radius: 999px;              /* pildora */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform .08s ease, box-shadow .12s ease, border-color .12s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* pequeño rebote al pulsar */
+.chip:active { transform: scale(.98); }
+
+/* contenido (icono + label) */
+.chip-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* icono dentro del chip — usa la clase que viene del lucide-react */
+.chip-content svg {
+  width: 16px;
+  height: 16px;
+  opacity: 0.95;
+  flex: 0 0 16px;
+  display: block;
+}
+
+/* etiqueta (texto) */
+.chip-content span {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px; /* evita que chips muy largos rompan la fila */
+}
+
+/* estado hover: levantar ligeramente y oscurecer borde */
+.chip:hover {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 6px 18px rgba(0,0,0,0.45);
+  border-color: rgba(255,255,255,0.08);
+}
+
+/* estado activo (seleccionado) */
+.chip-active {
+  border: 1.5px solid rgba(16,185,129,0.85); /* verde */
+  box-shadow: 0 6px 24px rgba(16,185,129,0.06), 0 0 0 4px rgba(16,185,129,0.06);
+  background: #0f1110; /* ligeramente distinto para resaltar */
+}
+
+/* variante cuando el chip aparece dentro de una lista con spacing CSS,
+   permite usar flex-wrap en el contenedor sin romper la alineación */
+.chip + .chip {
+  margin-left: 0; /* spacing lo maneja el contenedor (.filters-panel-chips) */
+}
+
+/* accesibilidad: foco claro */
+.chip:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.14);
 }

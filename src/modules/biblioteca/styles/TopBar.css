@@ -1,4 +1,109 @@
-/* TopBar.css */
+/* TopBar.css - búsqueda + chips activos en la parte superior */
 .top-bar {
-  /* Add styles if needed */
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+/* search box */
+.top-bar-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #171717;
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 8px 12px;
+  border-radius: 999px;
+  min-width: 280px;
+  flex: 1 1 420px;
+}
+
+/* search icon sizing */
+.top-bar-search svg {
+  width: 20px;
+  height: 20px;
+  opacity: 0.9;
+}
+
+/* input */
+.top-bar-input {
+  background: transparent;
+  border: none;
+  color: #e5e7eb;
+  font-size: 0.95rem;
+  outline: none;
+  width: 100%;
+  caret-color: #10b981;
+}
+
+/* contenedor de chips activos */
+.top-bar-chips {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+/* cada chip en la topbar (píldora con X) */
+.top-bar-chip {
+  background: #111111;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 999px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform .08s ease, background .12s ease, border-color .12s ease;
+}
+
+/* estilo interno para contenido del chip (type, value, icon) */
+.top-bar-chip-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+}
+
+/* tipo: texto más tenue (ej. "Genre:") */
+.top-bar-chip-type {
+  color: rgb(148 163 184); /* neutral-400 */
+  margin-right: 6px;
+  text-transform: capitalize;
+}
+
+/* valor: negrita/bold ligero */
+.top-bar-chip-value {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+/* icono de cerrar (X) */
+.top-bar-chip-content svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.9;
+}
+
+/* hover/press */
+.top-bar-chip:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.09);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+}
+
+/* si quieres un distintivo para chips "categoría" (por ejemplo color verde en borde) */
+.top-bar-chip[data-variant="highlight"] {
+  border: 1px solid rgba(16,185,129,0.9);
+  box-shadow: 0 6px 24px rgba(16,185,129,0.05);
+}
+
+/* responsivo: en pantallas pequeñas las chips se envuelven y el search ocupa linea completa */
+@media (max-width: 720px) {
+  .top-bar-search { flex-basis: 100%; min-width: 0; }
+  .top-bar-chips { gap: 8px; }
 }
