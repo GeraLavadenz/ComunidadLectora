@@ -86,8 +86,7 @@ export default function FiltersPanel({
   const debouncedAuthor = useDebounced(author, 300);
   useEffect(() => {
     onAuthor(debouncedAuthor);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedAuthor]);
+  }, [debouncedAuthor, onAuthor]);
 
   function getNameById(id: string, list: { id: string; name: string }[] | null | undefined) {
     if (!list || list.length === 0) return id;
@@ -177,7 +176,6 @@ export default function FiltersPanel({
             exit={{ height: 0, opacity: 0 }}
             transition={{ type: 'spring', duration: 0.35 }}
             className="filters-panel-content"
-            style={{ overflow: 'hidden' }}
           >
             {/* Autor */}
             <div>
@@ -192,47 +190,6 @@ export default function FiltersPanel({
                 className="filters-panel-input"
                 aria-label="Filtrar por autor"
               />
-            </div>
-
-            {/* Selected chips (show names, not IDs) */}
-            <div className="filters-selected">
-              {Array.from(selectedGenresSet).length > 0 && (
-                <div className="filters-selected-group">
-                  <div className="filters-selected-title">Géneros seleccionados</div>
-                  <div className="filters-selected-chips">
-                    {Array.from(selectedGenresSet).map((id) => {
-                      const label = getNameById(id, genresList);
-                      return (
-                        <Chip
-                          key={`selected-genre-${String(id)}`}
-                          label={label}
-                          active
-                          onClick={() => handleToggleGenre(String(id))}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {Array.from(selectedTagsSet).length > 0 && (
-                <div className="filters-selected-group">
-                  <div className="filters-selected-title">Etiquetas seleccionadas</div>
-                  <div className="filters-selected-chips">
-                    {Array.from(selectedTagsSet).map((id) => {
-                      const label = getNameById(id, tagsList);
-                      return (
-                        <Chip
-                          key={`selected-tag-${String(id)}`}
-                          label={label}
-                          active
-                          onClick={() => handleToggleTag(String(id))}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Géneros */}
