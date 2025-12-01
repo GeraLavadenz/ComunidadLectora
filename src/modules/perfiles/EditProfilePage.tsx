@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import supabase from '@/lib/supabaseClient';
+import './styles/EditProfile.css';
 
 type Profile = {
   id: string;
@@ -59,19 +60,83 @@ export default function EditProfilePage() {
     };
   }, []);
 
+  /**
+   * Upload: intenta Cloudinary -> si falla o no hay vars -> Supabase Storage fallback
+   */
   async function uploadAvatar(profileId: string) {
-    if (!avatarFile) return profile?.avatar_url ?? null;
-    const ext = avatarFile.name.split('.').pop();
-    const filePath = `avatars/${profileId}.${ext}`;
-    // Ajusta el bucket si no es 'public'
-    const { error: upErr } = await supabase.storage.from('public').upload(filePath, avatarFile, {
-      upsert: true,
-    });
-    if (upErr) {
-      throw upErr;
+    if (!avatarFile) {
+      console.log('No hay archivo de avatar seleccionado — manteniendo avatar actual.');
+      return profile?.avatar_url ?? null;
     }
-    const { data: urlData } = supabase.storage.from('public').getPublicUrl(filePath);
-    return urlData.publicUrl;
+
+    // Variables público-cliente para Cloudinary
+    const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+    console.log('DEBUG env CLOUD_NAME:', CLOUD_NAME);
+    console.log('DEBUG env UPLOAD_PRESET:', UPLOAD_PRESET);
+    console.log('DEBUG isClient:', typeof window !== 'undefined');
+
+    // Fallback: subir a Supabase Storage (tu lógica original)
+    async function uploadToSupabaseFallback() {
+      try {
+        const ext = avatarFile.name.split('.').pop();
+        const filePath = `avatars/${profileId}.${ext}`;
+        console.log('Subiendo a Supabase (fallback) ->', filePath);
+
+        const { error: upErr } = await supabase.storage.from('public').upload(filePath, avatarFile, {
+          upsert: true,
+        });
+
+        if (upErr) {
+          console.error('Supabase upload error:', upErr);
+          throw upErr;
+        }
+
+        const { data: urlData } = supabase.storage.from('public').getPublicUrl(filePath);
+        console.log('Supabase fallback upload OK ->', urlData.publicUrl);
+        return urlData.publicUrl;
+      } catch (err) {
+        console.error('Fallback Supabase upload failed:', err);
+        throw err;
+      }
+    }
+
+    // Si faltan variables, usar fallback inmediatamente
+    if (!CLOUD_NAME || !UPLOAD_PRESET) {
+      console.warn('Cloudinary env missing — usando Supabase fallback.');
+      return await uploadToSupabaseFallback();
+    }
+
+    // Intentar subir a Cloudinary
+    try {
+      const formData = new FormData();
+      formData.append('file', avatarFile);
+      formData.append('upload_preset', UPLOAD_PRESET);
+      // usamos public_id y folder para organizar en Cloudinary si está permitido por tu preset
+      formData.append('public_id', `avatars/${profileId}`);
+      formData.append('folder', 'avatars');
+
+      console.log('Intentando subir a Cloudinary...');
+
+      const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!resp.ok) {
+        const txt = await resp.text();
+        throw new Error(`Cloudinary upload failed: ${resp.status} ${txt}`);
+      }
+
+      const json = await resp.json();
+      console.log('Cloudinary upload OK ->', json.secure_url);
+      return json.secure_url as string;
+    } catch (err) {
+      console.error('Error subiendo a Cloudinary, intentando fallback a Supabase:', err);
+      // Caer al fallback si Cloudinary falla
+      return await uploadToSupabaseFallback();
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -92,115 +157,84 @@ export default function EditProfilePage() {
       if (error) throw error;
 
       setMessage('Perfil guardado ✅');
-      // actualizar timestamp/estado localmente
       setProfile((p) => (p ? { ...p, ...updates, updated_at: new Date().toISOString() } : p));
     } catch (err) {
       console.error(err);
       setMessage('Error guardando perfil.');
     } finally {
       setSaving(false);
-      // pequeña limpieza del input file si se guardó
       setAvatarFile(null);
     }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="animate-pulse text-gray-400">Cargando perfil…</div>
+      <div className="centered-container">
+        <div className="pulse">Cargando perfil…</div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+    <div className="page-container">
       <motion.header initial={{ y: -8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.3 }}>
-        <h1 className="text-3xl font-semibold mb-1">Editar perfil</h1>
-        <p className="text-sm text-gray-400">Actualiza tu información pública — minimal y con detalle.</p>
+        <h1 className="title">Editar perfil</h1>
+        <p className="subtitle">Actualiza tu información pública — minimal y con detalle.</p>
       </motion.header>
 
-      <motion.form
-        onSubmit={handleSave}
-        className="mt-6 bg-black/40 p-6 rounded-2xl shadow-md backdrop-blur-sm"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.05 }}
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-start">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-28 h-28 rounded-xl overflow-hidden bg-gray-800 flex items-center justify-center">
+      <motion.form onSubmit={handleSave} className="form-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }}>
+        <div className="grid">
+          <div className="left-col">
+            <div className="avatar-wrap" aria-hidden={!!profile?.avatar_url ? 'false' : 'true'}>
               {profile?.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                <img src={profile.avatar_url} alt="avatar" className="avatar-image" />
               ) : (
-                <div className="text-gray-500 text-2xl">{(profile?.display_name || 'U').charAt(0)}</div>
+                <div className="avatar-fallback">{(profile?.display_name || 'U').charAt(0)}</div>
               )}
             </div>
 
-            <label className="block text-xs text-gray-400">Cambiar avatar</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
-              className="text-sm w-full"
-            />
-            <div className="text-xs text-gray-500 mt-1 text-center">PNG/JPG. Recomendado 512x512</div>
+            <label className="label">Cambiar avatar</label>
+            <input type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)} className="file-input" />
+            <div className="helper">PNG/JPG. Recomendado 512x512</div>
           </div>
 
-          <div className="sm:col-span-2">
-            <label className="block text-xs text-gray-400">Nombre de usuario</label>
-            <input
-              value={profile?.username ?? ''}
-              disabled
-              className="w-full mt-1 p-3 rounded-lg bg-transparent border border-gray-700 text-white"
-            />
+          <div className="right-col">
+            <label className="label">Nombre de usuario</label>
+            <input value={profile?.username ?? ''} disabled className="input disabled" />
 
-            <label className="block text-xs text-gray-400 mt-4">Nombre para mostrar</label>
-            <input
-              value={profile?.display_name ?? ''}
-              onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
-              className="w-full mt-1 p-3 rounded-lg bg-transparent border border-gray-700 text-white"
-            />
+            <label className="label">Nombre para mostrar</label>
+            <input value={profile?.display_name ?? ''} onChange={(e) => setProfile({ ...profile, display_name: e.target.value })} className="input" />
 
-            <label className="block text-xs text-gray-400 mt-4">Bio</label>
-            <textarea
-              value={profile?.bio ?? ''}
-              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-              rows={4}
-              className="w-full mt-1 p-3 rounded-lg bg-transparent border border-gray-700 text-white"
-            />
+            <label className="label">Bio</label>
+            <textarea value={profile?.bio ?? ''} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} rows={4} className="textarea" />
 
-            <div className="flex items-center justify-between mt-6">
-              <div className="text-sm text-gray-400">Última actualización: {profile?.updated_at ? new Date(profile.updated_at).toLocaleString() : '—'}</div>
-              <div className="flex items-center gap-3">
+            <div className="row-between">
+              <div className="meta">Última actualización: {profile?.updated_at ? new Date(profile.updated_at).toLocaleString() : '—'}</div>
+
+              <div className="actions">
                 <button
                   type="button"
                   onClick={() => {
-                    // cancelar cambios localmente re-cargando datos simples
                     setMessage(null);
                     setAvatarFile(null);
-                    // reload profile from db quickly
                     (async () => {
                       const { data, error } = await supabase.from('profiles').select('*').eq('id', profile!.id).single();
                       if (!error) setProfile(data as Profile);
                     })();
                   }}
-                  className="px-3 py-2 rounded-md border border-gray-700 text-sm"
+                  className="btn btn-ghost"
                 >
                   Cancelar
                 </button>
 
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:scale-[1.02] transform transition text-white font-medium"
-                >
+                <button type="submit" disabled={saving} className="btn btn-primary">
                   {saving ? 'Guardando…' : 'Guardar cambios'}
                 </button>
               </div>
             </div>
 
-            {message && <div className="mt-4 text-sm text-gray-300">{message}</div>}
+            {message && <div className="message">{message}</div>}
           </div>
         </div>
       </motion.form>

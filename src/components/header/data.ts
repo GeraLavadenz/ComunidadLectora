@@ -23,6 +23,6 @@ export const community: MenuItem[] = [
 
 export const createOptions: MenuItem[] = [
   { title: 'Mis historias', href: '/escritura/mis-historias' },
-  { title: 'Recursos útiles para escritores', href: '/resources' },
-  { title: 'Corrector inteligente', href: '/programs' },
+  //{ title: 'Recursos útiles para escritores', href: '/resources' },
+  //{ title: 'Corrector inteligente', href: '/programs' },
 ];
