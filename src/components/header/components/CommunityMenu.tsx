@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import {
   NavigationMenuItem,
   NavigationMenuTrigger,
@@ -21,9 +22,11 @@ const CommunityMenu: React.FC = () => {
         <ul className={styles.menuList}>
           {community.map((item) => (
             <li key={item.title}>
-              <NavigationMenuLink className={styles.menuLink}>
-                {item.title}
-              </NavigationMenuLink>
+              <Link href={item.href} passHref>
+                <NavigationMenuLink className={styles.menuLink}>
+                  {item.title}
+                </NavigationMenuLink>
+              </Link>
             </li>
           ))}
         </ul>
