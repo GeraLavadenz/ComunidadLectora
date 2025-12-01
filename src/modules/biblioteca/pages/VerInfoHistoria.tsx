@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import supabase from "@/lib/supabaseClient";
 import Image from "next/image";
 import Link from "next/link";
+import "@/modules/biblioteca/styles/VerInfoHistoria.css";
 
 interface Profile {
   id: string;
@@ -21,9 +22,18 @@ interface Story {
   author_id: string;
 }
 
-interface Tag {
+interface TagData {
   id: string;
   name: string;
+  type: string; // genre | tag
+}
+
+interface Chapter {
+  id: string;
+  title?: string | null;
+  chapter_number?: number | null;
+  is_published?: boolean | null;
+  published_at?: string | null;
 }
 
 type Props = {
@@ -35,8 +45,9 @@ const VerInfoHistoria: React.FC<Props> = ({ storyId: propStoryId }) => {
 
   const [story, setStory] = useState<Story | null>(null);
   const [author, setAuthor] = useState<Profile | null>(null);
-  const [tags, setTags] = useState<Tag[]>([]);
+  const [tags, setTags] = useState<TagData[]>([]);
   const [recs, setRecs] = useState<Story[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,11 +69,8 @@ const VerInfoHistoria: React.FC<Props> = ({ storyId: propStoryId }) => {
     const loadData = async (): Promise<void> => {
       setLoading(true);
       try {
-        // 1) Obtener historia (sin embed)
-        const {
-          data: storyData,
-          error: storyErr,
-        } = await supabase
+        // 1) Obtener historia
+        const { data: storyData, error: storyErr } = await supabase
           .from<Story>("stories")
           .select("id, title, description, cover_url, author_id")
           .eq("id", storyId)
@@ -75,38 +83,32 @@ const VerInfoHistoria: React.FC<Props> = ({ storyId: propStoryId }) => {
         if (!mounted) return;
         setStory(storyData);
 
-        // 2) Obtener autor por separado
-        const { data: authorData, error: authorErr } = await supabase
+        // 2) Obtener autor
+        const { data: authorData } = await supabase
           .from<Profile>("profiles")
           .select("id, display_name, avatar_url")
           .eq("id", storyData.author_id)
           .single();
 
-        if (authorErr) {
-          // no stop app; se muestra sin autor si falla
-          // eslint-disable-next-line no-console
-          console.warn("No se pudo obtener autor:", authorErr.message);
-          if (mounted) setAuthor(null);
-        } else {
-          if (mounted) setAuthor(authorData ?? null);
-        }
+        if (mounted) setAuthor(authorData ?? null);
 
-        // 3) Tags (story_tags -> tags)
+        // 3) Obtener Tags + Géneros (tags.type)
         const { data: tagData } = await supabase
           .from("story_tags")
-          .select("tags(id, name)")
+          .select("tags(id, name, type)")
           .eq("story_id", storyId);
 
         if (mounted && Array.isArray(tagData)) {
           setTags(
             tagData.map((t: any) => ({
-              id: t.tags.id as string,
-              name: t.tags.name as string,
+              id: t.tags.id,
+              name: t.tags.name,
+              type: t.tags.type,
             }))
           );
         }
 
-        // 4) Recomendaciones del mismo autor (excluir actual)
+        // 4) Recomendaciones
         const { data: recData } = await supabase
           .from<Story>("stories")
           .select("id, title, cover_url, author_id")
@@ -115,6 +117,15 @@ const VerInfoHistoria: React.FC<Props> = ({ storyId: propStoryId }) => {
           .limit(6);
 
         if (mounted) setRecs(recData ?? []);
+
+        // 5) Capítulos
+        const { data: chapterData } = await supabase
+          .from<Chapter>("chapters")
+          .select("id, title, chapter_number, is_published, published_at")
+          .eq("story_id", storyId)
+          .order("chapter_number", { ascending: true });
+
+        if (mounted) setChapters(chapterData ?? []);
 
         setError(null);
       } catch (err: unknown) {
@@ -133,97 +144,157 @@ const VerInfoHistoria: React.FC<Props> = ({ storyId: propStoryId }) => {
     };
   }, [storyId]);
 
+  const publishedChapters = chapters.filter((c) => c.is_published);
+  const publishedCount = publishedChapters.length;
+
   if (loading) {
-    return <div className="p-6">Cargando historia…</div>;
+    return <div className="vih-container">Cargando historia…</div>;
   }
 
   if (error) {
-    return <div className="p-6 text-red-500" role="alert">{error}</div>;
+    return (
+      <div className="vih-container" role="alert">
+        <div className="vih-section">{error}</div>
+      </div>
+    );
   }
 
   if (!story) {
-    return <div className="p-6">Historia no encontrada.</div>;
+    return (
+      <div className="vih-container">
+        <div className="vih-section">Historia no encontrada.</div>
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto flex flex-col gap-10">
-      {/* Header: portada + título + autor */}
-      <div className="flex gap-6">
-        <div className="w-40 h-56 relative rounded overflow-hidden bg-gray-200">
+    <div className="vih-container">
+      {/* Header */}
+      <header className="vih-header" aria-labelledby={`story-title-${story.id}`}>
+        <div className="vih-cover">
           {story.cover_url ? (
             <Image
               src={story.cover_url}
               alt={`Portada de ${story.title}`}
               fill
-              style={{ objectFit: "cover" }}
+              className="vih-cover-img"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500">
-              Sin portada
-            </div>
+            <div className="vih-cover-placeholder" />
           )}
         </div>
 
-        <div className="flex flex-col justify-between py-2">
-          <div>
-            <h1 className="text-3xl font-bold">{story.title}</h1>
-            {author ? (
-              <p className="text-gray-600 mt-1">Por: {author.display_name ?? "—"}</p>
-            ) : (
-              <p className="text-gray-600 mt-1">Por: —</p>
-            )}
+        <div className="vih-info">
+          <h1 id={`story-title-${story.id}`} className="vih-title">
+            {story.title}
+          </h1>
+
+          <p className="vih-author">Por: {author?.display_name ?? "—"}</p>
+
+          {/* GÉNEROS */}
+          <div className="vih-genres">
+            {tags
+              .filter((t) => t.type === "genre")
+              .map((t) => (
+                <span key={t.id} className="vih-genre">
+                  {t.name}
+                </span>
+              ))}
           </div>
 
-          {/* Tags */}
-          <div className="flex gap-2 mt-4 flex-wrap">
-            {tags.map((t) => (
-              <span
-                key={t.id}
-                className="px-3 py-1 bg-gray-800 text-white rounded-full text-sm"
-                aria-label={`Etiqueta ${t.name}`}
-              >
-                {t.name}
-              </span>
-            ))}
+          {/* TAGS */}
+          <div className="vih-tags">
+            {tags
+              .filter((t) => t.type !== "genre")
+              .map((t) => (
+                <span key={t.id} className="vih-tag">
+                  {t.name}
+                </span>
+              ))}
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Descripción */}
-      <section>
-        <h2 className="text-xl font-semibold mb-2">Descripción</h2>
-        <p className="text-gray-700 leading-relaxed">{story.description ?? "—"}</p>
+      <section className="vih-section" aria-labelledby="desc-heading">
+        <h2 id="desc-heading">Descripción</h2>
+        <p className="vih-description">{story.description ?? "—"}</p>
+      </section>
+
+      {/* Capítulos */}
+      <section className="vih-section" aria-labelledby="chapters-heading">
+        <div className="vih-chapters-heading">
+          <h2 id="chapters-heading">Capítulos</h2>
+          <div className="vih-chapter-count">
+            Publicados: <strong>{publishedCount}</strong>
+          </div>
+        </div>
+
+        {chapters.length === 0 ? (
+          <p className="vih-description">Aún no hay capítulos.</p>
+        ) : (
+          <ol className="vih-chapter-list">
+            {chapters.map((c) => {
+              const isPub = Boolean(c.is_published);
+              const href = isPub
+                ? `/biblioteca/leer?storyId=${encodeURIComponent(story.id)}&chapterId=${encodeURIComponent(c.id)}`
+                : "#";
+
+              return (
+                <li key={c.id} className="vih-chapter-item">
+                  <div className="vih-chapter-meta">
+                    <div className="vih-chapter-number">
+                      Cap. {c.chapter_number ?? "—"} {isPub ? "" : "(borrador)"}
+                    </div>
+
+                    <div className="vih-chapter-title">{c.title ?? "Sin título"}</div>
+
+                    {isPub && c.published_at && (
+                      <div className="vih-chapter-date">
+                        {new Date(c.published_at).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    {isPub ? (
+                      <Link href={href} className="vih-btn read">
+                        Leer
+                      </Link>
+                    ) : (
+                      <button className="vih-btn disabled" disabled>
+                        No publicado
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
       </section>
 
       {/* Recomendaciones */}
       {recs.length > 0 && (
-        <section>
-          <h2 className="text-xl font-semibold mb-3">Más del autor</h2>
+        <section className="vih-section" aria-labelledby="recs-heading">
+          <h2 id="recs-heading">Más del autor</h2>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="vih-recs-grid">
             {recs.map((r) => (
               <Link
                 key={r.id}
-                href={`/biblioteca/ver-info?id=${r.id}`}
-                className="group flex flex-col items-center"
+                href={`/biblioteca/ver-info/${encodeURIComponent(r.id)}`}
+                className="vih-rec"
               >
-                <div className="w-32 h-44 relative rounded overflow-hidden bg-gray-200">
+                <div className="vih-rec-cover">
                   {r.cover_url ? (
-                    <Image
-                      src={r.cover_url}
-                      alt={`Portada de ${r.title}`}
-                      fill
-                      style={{ objectFit: "cover" }}
-                      // no className transform that lints as unused style
-                    />
+                    <Image src={r.cover_url} alt={r.title} fill className="vih-cover-img" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
-                      Sin portada
-                    </div>
+                    <div className="vih-cover-placeholder" />
                   )}
                 </div>
 
-                <p className="mt-2 text-sm text-center group-hover:underline">{r.title}</p>
+                <p className="vih-rec-title">{r.title}</p>
               </Link>
             ))}
           </div>

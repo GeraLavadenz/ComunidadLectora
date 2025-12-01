@@ -1,0 +1,260 @@
+/* ================================
+   MODO CLARO Y OSCURO
+================================ */
+
+:root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --text: #0f172a;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --glass: rgba(255, 255, 255, 0.27);
+    --border: #dbe3ef;
+    --shadow: 0 8px 20px rgba(0,0,0,0.06);
+    --progress: 0%;
+  }
+  
+  /* DARK THEME */
+  [data-theme="dark"] {
+    --bg: #0d1117;
+    --card: #161b22;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #60a5fa;
+    --accent-dark: #3b82f6;
+    --glass: rgba(255,255,255,0.08);
+    --border: #2e3540;
+    --shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  
+  /* ================================
+     BASE
+  ================================ */
+  
+  .leer-container {
+    max-width: 1100px;
+    margin: 24px auto;
+    padding: 22px;
+    background: var(--bg);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    color: var(--text);
+    transition: background .25s ease, color .25s ease;
+  }
+  
+  .leer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .leer-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+  }
+  
+  .leer-subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 2px 0 0;
+  }
+  
+  /* ================================
+     GLASSMORPHISM BUTTONS
+  ================================ */
+  
+  .glass {
+    backdrop-filter: blur(12px);
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 14px;
+    box-shadow: var(--shadow);
+    transition: background .3s ease, transform .12s ease;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text);
+  }
+  
+  .glass:hover {
+    background: rgba(255,255,255,0.4);
+    transform: translateY(-2px);
+  }
+  
+  [data-theme="dark"] .glass:hover {
+    background: rgba(255,255,255,0.15);
+  }
+  
+  /* PRIMARY glass */
+  .primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark)) !important;
+    color: white !important;
+  }
+  
+  /* OUTLINE glass */
+  .outline {
+    border: 1px dashed var(--accent-dark);
+  }
+  
+  /* ================================
+     PROGRESS BAR
+  ================================ */
+  
+  .leer-book-progress { margin: 16px 0; }
+  
+  .leer-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .leer-progress {
+    width: 100%;
+    height: 12px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(150,150,150,0.2);
+    position: relative;
+  }
+  
+  .leer-progress::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: var(--progress);
+    background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+    transition: width .25s ease;
+  }
+  
+  .leer-pct {
+    font-weight: 700;
+    min-width: 40px;
+    text-align: right;
+  }
+  
+  /* ================================
+     TOOLBAR
+  ================================ */
+  
+  .leer-toolbar {
+    display: flex;
+    justify-content: space-between;
+    margin: 18px 0;
+    align-items: center;
+  }
+  
+  .leer-select-group label {
+    font-size: 14px;
+    color: var(--muted);
+    margin-right: 10px;
+  }
+  
+  .leer-select-group select {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+  }
+  
+  /* ================================
+     MAIN LAYOUT
+  ================================ */
+  
+  .leer-main {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 20px;
+  }
+  
+  .leer-aside {
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    height: calc(60vh + 40px);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .leer-aside ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+  }
+  
+  .leer-aside li button {
+    width: 100%;
+    text-align: left;
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border: none;
+  }
+  
+  .leer-aside li button.active {
+    background: rgba(90, 150, 255, 0.12);
+    border-left: 4px solid var(--accent);
+  }
+  
+  .leer-aside .num {
+    background: rgba(80,120,255,0.15);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    min-width: 34px;
+    text-align: center;
+  }
+
+  .leer-chapter-progress {
+    margin-top: auto;
+  }
+  
+  .leer-reader {
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    height: calc(60vh + 40px);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .leer-content {
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 6px;
+    line-height: 1.7;
+  }
+  
+  /* ================================
+     TOAST
+  ================================ */
+  
+  .leer-toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    padding: 12px 16px;
+    background: var(--accent-dark);
+    color: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    font-weight: 700;
+    z-index: 9999;
+  }
+  
+  /* ================================
+     RESPONSIVE
+  ================================ */
+  
+  @media (max-width: 900px) {
+    .leer-main { grid-template-columns: 1fr; }
+    .leer-aside, .leer-reader {
+      height: auto;
+    }
+  }
+  
