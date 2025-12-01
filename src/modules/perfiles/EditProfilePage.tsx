@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import supabase from '@/lib/supabaseClient';
+import { uploadImageUnsigned } from '@/lib/cloudinaryClient'; // <-- reutilizamos el helper de portadas
 import './styles/EditProfile.css';
 
 type Profile = {
@@ -24,6 +25,7 @@ export default function EditProfilePage() {
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -61,81 +63,37 @@ export default function EditProfilePage() {
   }, []);
 
   /**
-   * Upload: intenta Cloudinary -> si falla o no hay vars -> Supabase Storage fallback
+   * Subir avatar reutilizando uploadImageUnsigned (mismo flujo que portadas)
+   * Devuelve el URL (secure_url) o mantiene el avatar actual si no hay archivo.
    */
-  async function uploadAvatar(profileId: string) {
+  async function uploadAvatarToCoverFlow(profileId: string) {
     if (!avatarFile) {
       console.log('No hay archivo de avatar seleccionado — manteniendo avatar actual.');
       return profile?.avatar_url ?? null;
     }
 
-    // Variables público-cliente para Cloudinary
-    const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-
-    console.log('DEBUG env CLOUD_NAME:', CLOUD_NAME);
-    console.log('DEBUG env UPLOAD_PRESET:', UPLOAD_PRESET);
-    console.log('DEBUG isClient:', typeof window !== 'undefined');
-
-    // Fallback: subir a Supabase Storage (tu lógica original)
-    async function uploadToSupabaseFallback() {
-      try {
-        const ext = avatarFile.name.split('.').pop();
-        const filePath = `avatars/${profileId}.${ext}`;
-        console.log('Subiendo a Supabase (fallback) ->', filePath);
-
-        const { error: upErr } = await supabase.storage.from('public').upload(filePath, avatarFile, {
-          upsert: true,
-        });
-
-        if (upErr) {
-          console.error('Supabase upload error:', upErr);
-          throw upErr;
-        }
-
-        const { data: urlData } = supabase.storage.from('public').getPublicUrl(filePath);
-        console.log('Supabase fallback upload OK ->', urlData.publicUrl);
-        return urlData.publicUrl;
-      } catch (err) {
-        console.error('Fallback Supabase upload failed:', err);
-        throw err;
-      }
-    }
-
-    // Si faltan variables, usar fallback inmediatamente
-    if (!CLOUD_NAME || !UPLOAD_PRESET) {
-      console.warn('Cloudinary env missing — usando Supabase fallback.');
-      return await uploadToSupabaseFallback();
-    }
-
-    // Intentar subir a Cloudinary
+    setUploadingAvatar(true);
     try {
-      const formData = new FormData();
-      formData.append('file', avatarFile);
-      formData.append('upload_preset', UPLOAD_PRESET);
-      // usamos public_id y folder para organizar en Cloudinary si está permitido por tu preset
-      formData.append('public_id', `avatars/${profileId}`);
-      formData.append('folder', 'avatars');
+      // reusa el helper que ya usas para portadas
+      const res = await uploadImageUnsigned(avatarFile);
+      // Igual lógica de extracción que en capitulos.tsx
+      const url =
+        (res as { url?: string }).url ||
+        (res as { secure_url?: string }).secure_url ||
+        (res as { raw?: { secure_url?: string } }).raw?.secure_url;
 
-      console.log('Intentando subir a Cloudinary...');
-
-      const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!resp.ok) {
-        const txt = await resp.text();
-        throw new Error(`Cloudinary upload failed: ${resp.status} ${txt}`);
+      if (!url) {
+        console.error('uploadImageUnsigned no devolvió URL válida', res);
+        throw new Error('No se obtuvo URL de Cloudinary al subir avatar.');
       }
 
-      const json = await resp.json();
-      console.log('Cloudinary upload OK ->', json.secure_url);
-      return json.secure_url as string;
+      console.log('Avatar subido ->', url);
+      return url as string;
     } catch (err) {
-      console.error('Error subiendo a Cloudinary, intentando fallback a Supabase:', err);
-      // Caer al fallback si Cloudinary falla
-      return await uploadToSupabaseFallback();
+      console.error('Error subiendo avatar usando uploadImageUnsigned', err);
+      throw err;
+    } finally {
+      setUploadingAvatar(false);
     }
   }
 
@@ -146,7 +104,8 @@ export default function EditProfilePage() {
     setMessage(null);
 
     try {
-      const avatar_url = await uploadAvatar(profile.id);
+      const avatar_url = await uploadAvatarToCoverFlow(profile.id);
+
       const updates = {
         display_name: profile.display_name,
         bio: profile.bio,
@@ -158,9 +117,10 @@ export default function EditProfilePage() {
 
       setMessage('Perfil guardado ✅');
       setProfile((p) => (p ? { ...p, ...updates, updated_at: new Date().toISOString() } : p));
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      setMessage('Error guardando perfil.');
+      const errMsg = err instanceof Error ? err.message : 'Error guardando perfil.';
+      setMessage(errMsg);
     } finally {
       setSaving(false);
       setAvatarFile(null);
@@ -195,8 +155,14 @@ export default function EditProfilePage() {
             </div>
 
             <label className="label">Cambiar avatar</label>
-            <input type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)} className="file-input" />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
+              className="file-input"
+            />
             <div className="helper">PNG/JPG. Recomendado 512x512</div>
+            {uploadingAvatar && <div className="helper">Subiendo avatar...</div>}
           </div>
 
           <div className="right-col">
@@ -228,7 +194,7 @@ export default function EditProfilePage() {
                   Cancelar
                 </button>
 
-                <button type="submit" disabled={saving} className="btn btn-primary">
+                <button type="submit" disabled={saving || uploadingAvatar} className="btn btn-primary">
                   {saving ? 'Guardando…' : 'Guardar cambios'}
                 </button>
               </div>
