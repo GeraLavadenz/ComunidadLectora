@@ -4,7 +4,6 @@ import {
   NavigationMenuItem,
   NavigationMenuTrigger,
   NavigationMenuContent,
-  NavigationMenuLink,
 } from '../../ui/navigation-menu';
 import { community } from '../data';
 import styles from './styles/CommunityMenu.module.css';
@@ -22,10 +21,8 @@ const CommunityMenu: React.FC = () => {
         <ul className={styles.menuList}>
           {community.map((item) => (
             <li key={item.title}>
-              <Link href={item.href} passHref>
-                <NavigationMenuLink className={styles.menuLink}>
-                  {item.title}
-                </NavigationMenuLink>
+              <Link href={item.href} className={styles.menuLink}>
+                {item.title}
               </Link>
             </li>
           ))}

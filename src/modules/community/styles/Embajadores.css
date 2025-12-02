@@ -1,0 +1,214 @@
+/* Embajadores Page Styles */
+.embajadores-main {
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #fef3c7, #fde68a);
+}
+
+.dark .embajadores-main {
+  background: linear-gradient(to bottom right, #451a03, #78350f);
+}
+
+.embajadores-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+/* Header Section */
+.embajadores-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.embajadores-users-icon {
+  width: 4rem;
+  height: 4rem;
+  color: #f59e0b;
+  margin: 0 auto 1.5rem;
+}
+
+.dark .embajadores-users-icon {
+  color: #fbbf24;
+}
+
+.embajadores-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  .embajadores-title {
+    font-size: 3rem;
+  }
+}
+
+.dark .embajadores-title {
+  color: #ffffff;
+}
+
+.embajadores-subtitle {
+  font-size: 1.25rem;
+  color: #6b7280;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.dark .embajadores-subtitle {
+  color: #d1d5db;
+}
+
+/* Embajadores Grid */
+.embajadores-grid {
+  display: grid;
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+@media (min-width: 768px) {
+  .embajadores-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .embajadores-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Embajador Card */
+.embajador-card {
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  border: 1px solid transparent;
+  transition: box-shadow 0.3s ease;
+  text-align: center;
+}
+
+.embajador-card:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.dark .embajador-card {
+  background-color: #1f2937;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  border-color: #374151;
+}
+
+.dark .embajador-card:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+}
+
+.embajador-avatar {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: white;
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.dark .embajador-avatar {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.embajador-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.dark .embajador-name {
+  color: #ffffff;
+}
+
+.embajador-role {
+  color: #6b7280;
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+.dark .embajador-role {
+  color: #d1d5db;
+}
+
+.embajador-description {
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.dark .embajador-description {
+  color: #d1d5db;
+}
+
+/* Call to Action */
+.embajadores-cta {
+  text-align: center;
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  border: 1px solid transparent;
+}
+
+.dark .embajadores-cta {
+  background-color: #1f2937;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  border-color: #374151;
+}
+
+.embajadores-cta-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 1rem;
+}
+
+.dark .embajadores-cta-title {
+  color: #ffffff;
+}
+
+.embajadores-cta-description {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+.dark .embajadores-cta-description {
+  color: #d1d5db;
+}
+
+.embajadores-cta-button {
+  background-color: #f59e0b;
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.embajadores-cta-button:hover {
+  background-color: #d97706;
+}
+
+.dark .embajadores-cta-button {
+  background-color: #fbbf24;
+}
+
+.dark .embajadores-cta-button:hover {
+  background-color: #f59e0b;
+}
